@@ -1,0 +1,20 @@
+MuJoCo Pro Personal license activation key, number 26744, type 6.
+
+Issued to Amin Ghafari <amin.ghafari@berkeley.edu>.
+
+Expires July 13, 2018.
+
+This file activates MuJoCo Pro on a single computer with id:
+LINUX_2D0GDB0DF42A481S3WXDH1811CCSWW4SXBTWNR7_179
+
+Do not modify this file. Its entire content, including the
+plain text section, is used by the activation manager.
+
+9611fe65178562be9d339768461df8be5e78d6055aa42ca1e0202e180bc4e8fa
+b44735e06f7817595c3e2265ab4f485bbc0bdb97d57a3c8dbbb5443019e9531a
+6d1eb8e5d4155a3ed17256b350865f3e2f1f1d540b7b8d4bf09791fc01d05a49
+1900927a3ee919866dcb3b4ba9a7a97e2f9fe14308110cdf3d544c5779e04530
+986fd45cf25a07c4173c0b36118e5a8816062f8e9699fcb2f9e43e52254fa439
+801b3346a223b31defa14098b0f487fb77222d96ac6f16c0cc1c841b2726c368
+a5a4e04034d52d15177be6cebc586ab9ffbd6b8185a5357e0ec4cf959487e2a2
+11b0b93f501cc4dbf5305fff73afd848a743c95c81043982bdb8dc4624e9f9e1
