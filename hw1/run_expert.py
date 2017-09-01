@@ -17,6 +17,7 @@ import load_policy
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument('expert_policy_file', type=str)
     parser.add_argument('envname', type=str)
