@@ -2,10 +2,11 @@ import numpy as np
 import pickle
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import math
 
 def model(x,y):
 	# setup variables
-	hD1 = 30
+	hD1 = 40
 	hD2 = 40
 	hD3 = 3
 	# layer1
@@ -34,13 +35,19 @@ def main():
 	y_train = expert_data['actions']
 	y_train = np.squeeze(y_train, axis=1)
 
+	N = x_train.shape[0]
+	print(int(math.ceil(N/100)))
+	train_indicies = np.arange(N)
+	np.random.shuffle(train_indicies)
+
 	# Model
 	x = tf.placeholder(tf.float32, [None, x_train.shape[1]])
 	y = tf.placeholder(tf.float32, [None, y_train.shape[1]])
+	is_training = tf.placeholder(tf.bool)
 	# output of the model
 	y_out = model(x, y)
 	# loss
-	loss = tf.reduce_mean(tf.square(y_out - y_train))
+	loss = tf.reduce_mean(tf.square(y_out - y))
 	# optimizer
 	optimizer = tf.train.AdamOptimizer(5e-4)
 	train = optimizer.minimize(loss)
@@ -48,15 +55,24 @@ def main():
 	sess = tf.Session()
 	sess.run(tf.global_variables_initializer())
 	
-	loss_ = []
-	for step in range(0,4001):
-		train.run({x: x_train}, sess)
-		if step%100==0 :
-			loss_step = loss.eval({x: x_train}, sess)
+	batch_size = 100
+	losses = []
+	for epoch in range(5):
+		print('epoch:',epoch)
+		for i in range(int(math.ceil(N/batch_size))):
+			start_idx = i*batch_size%N
+			idx = train_indicies[start_idx:start_idx+batch_size]
+			# create a feed dictionary
+			feed_dict = {x : x_train[idx,:], y: y_train[idx,:], is_training: True}
+			# get the batch size			
+			actual_batch_size = y_train[idx].shape[0]
+			
+			loss_step,_ = sess.run([loss, train], feed_dict=feed_dict)
+			
+			losses.append(loss_step*actual_batch_size)
 			print(loss_step)
-			loss_.append(loss_step)
 
-	plt.plot(loss_)
+	plt.plot(losses)
 	plt.ylabel('loss')
 	plt.show()
 
