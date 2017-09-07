@@ -51,13 +51,14 @@ def main():
 	loss_ = []
 	for step in range(0,4001):
 		train.run({x: x_train}, sess)
-		if step%100==0 :
-			loss_step = loss.eval({x: x_train}, sess)
-			print(loss_step)
-			loss_.append(loss_step)
+		#if step%100==0 :
+		loss_step = loss.eval({x: x_train}, sess)
+		print(loss_step)
+		loss_.append(loss_step)
 
 	plt.plot(loss_)
 	plt.ylabel('loss')
+	plt.xlabel('iterations')
 	plt.show()
 
 if __name__ == '__main__':
