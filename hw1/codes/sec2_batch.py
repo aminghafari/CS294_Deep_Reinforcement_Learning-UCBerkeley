@@ -69,7 +69,7 @@ def main():
 			
 			loss_step,_ = sess.run([loss, train], feed_dict=feed_dict)
 			
-			losses.append(loss_step*actual_batch_size)
+			losses.append(loss_step)
 			print(loss_step)
 
 	plt.plot(losses)
