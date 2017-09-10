@@ -25,7 +25,7 @@ def model(x,out_D):
 	h1 = tf.nn.relu( tf.matmul(x,  W1) + b1 )
 	h2 = tf.nn.relu( tf.matmul(h1, W2) + b2 )
 	h3 = tf.nn.relu( tf.matmul(h2, W3) + b3 )
-	y_out = tf.matmul(h3, W4) + b4
+	y_out = tf.add(tf.matmul(h3, W4), b4, name="y_out")
 
 	return y_out
 
@@ -35,6 +35,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('expert_data',type=str)
 	parser.add_argument('envname', type=str)
+	parser.add_argument('--epochs', type=int, default=20)
 	args = parser.parse_args()
 
         # load the data
@@ -51,7 +52,7 @@ def main():
 	np.random.shuffle(train_indicies)
 
 	# Model
-	x = tf.placeholder(tf.float32, [None, x_train.shape[1]])
+	x = tf.placeholder(tf.float32, [None, x_train.shape[1]], name = "x")
 	y = tf.placeholder(tf.float32, [None, y_train.shape[1]])
 	is_training = tf.placeholder(tf.bool)
 	# output of the model
@@ -67,7 +68,7 @@ def main():
 	
 	batch_size = 100
 	losses = []
-	for epoch in range(40):
+	for epoch in range(args.epochs):
 		for i in range(int(math.ceil(N/batch_size))):
 			start_idx = i*batch_size%N
 			idx = train_indicies[start_idx:start_idx+batch_size]

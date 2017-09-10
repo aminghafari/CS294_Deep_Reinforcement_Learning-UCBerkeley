@@ -1,2 +1,2 @@
-model_checkpoint_path: "Ant-v1-trained"
-all_model_checkpoint_paths: "Ant-v1-trained"
+model_checkpoint_path: "Hopper-v1-trained"
+all_model_checkpoint_paths: "Hopper-v1-trained"

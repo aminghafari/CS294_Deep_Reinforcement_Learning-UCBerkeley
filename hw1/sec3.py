@@ -9,6 +9,9 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('trained_model',type=str)
 	parser.add_argument('envname', type=str)
+	parser.add_argument('--render', action='store_true')
+	parser.add_argument('--num_rollouts', type=int, default=20,
+                        help='Number of expert roll outs')
 	args = parser.parse_args()
 
 
@@ -27,26 +30,26 @@ def main():
 		env = gym.make(args.envname)
 		max_steps = env.spec.timestep_limit
 		print(max_steps)
-		num_rollouts = 1
 
 		returns = []
 		observations = []
 		actions = []
-		for i in range(num_rollouts):
+		for i in range(args.num_rollouts):
 			print('iter', i)
 			obs = env.reset()
 			done = False
 			totalr = 0.
 			steps = 0
 			while not done:
-				action = sess.run('y_out', feed_dict={x : np.array([obs])})
+				action = sess.run(y_out, feed_dict={x : np.array([obs])})
 				observations.append(obs)
 				actions.append(action)
 				obs, r, done, _ = env.step(action)
 				totalr += r
 				steps += 1
 				
-				env.render()
+				if args.render:
+					env.render()
 				if steps % 100 == 0: print("%i/%i"%(steps, max_steps))
 				if steps >= max_steps:
 					break
