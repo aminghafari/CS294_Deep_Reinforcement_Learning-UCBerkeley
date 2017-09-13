@@ -15,7 +15,7 @@ def main():
 	parser.add_argument('envname', type=str)
 	parser.add_argument('--render', action='store_true')
 	parser.add_argument('--epoch_step', type=int, default=5)
-	parser.add_argument('--epochs_itr', type=int, default=10)
+	parser.add_argument('--epochs_itr', type=int, default=10,help='how many time increase the epcosh starting from 0 epochs')
 	parser.add_argument('--num_rollouts', type=int, default=20,
                         help='Number of expert roll outs')
 	args = parser.parse_args()

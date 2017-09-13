@@ -28,8 +28,8 @@ def main():
 	# train the model
 	losses = model.train_model(x_train, y_train, sess, args.epochs)
 
-	saver = tf.train.Saver()
-	saver.save(sess, args.envname+"-trained")
+	#saver = tf.train.Saver()
+	#saver.save(sess, args.envname+"-trained")
 
 	plt.plot(losses)
 	plt.ylabel('loss')
