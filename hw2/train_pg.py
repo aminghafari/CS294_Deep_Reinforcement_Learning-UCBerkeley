@@ -127,7 +127,7 @@ def train_PG(exp_name='',
         sy_ac_na = tf.placeholder(shape=[None, ac_dim], name="ac", dtype=tf.float32) 
 
     # Define a placeholder for advantages
-    sy_adv_n = TODO
+    sy_adv_n = tf.placeholder(shape=[None], name="adv", dtype=tf.float32) 
 
 
     #========================================================================================#
@@ -159,7 +159,7 @@ def train_PG(exp_name='',
     #
     #          Should have shape [None, ac_dim]
     #
-    #      Note: these ops should be functions of the policy network output ops.
+    #       Note: these ops should be functions of the policy network output ops.
     #
     #   3. Computing the log probability of a set of actions that were actually taken, 
     #      according to the policy.
@@ -171,13 +171,14 @@ def train_PG(exp_name='',
 
     if discrete:
         # YOUR_CODE_HERE
-        sy_logits_na = TODO
-        sy_sampled_ac = TODO # Hint: Use the tf.multinomial op
-        sy_logprob_n = TODO
+        with tf.variable_scope('disc'):
+            sy_logits_na = build_mlp(sy_ob_no, ac_dim, disc)
+            sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
+            sy_logprob_n = tf.log(sy_sampled_ac)
 
     else:
         # YOUR_CODE_HERE
-        sy_mean = TODO
+        sy_mean = 
         sy_logstd = TODO # logstd should just be a trainable variable, not a network output.
         sy_sampled_ac = TODO
         sy_logprob_n = TODO  # Hint: Use the log probability under a multivariate gaussian. 
