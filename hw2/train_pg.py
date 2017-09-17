@@ -37,8 +37,7 @@ def build_mlp(
         h = tf.layers.dense(inputs= input_placeholder, units=size, activation = activation)
         for i in range(1,n_layers):
             h = tf.layers.dense(inputs= h, units=size, activation = activation)
-        ouput = tf.layers.dense(inputs= h, units=output_size, activation = output_activation)
-        print(output)
+        output = tf.layers.dense(inputs= h, units=output_size, activation = output_activation)
         return output
 
 def pathlength(path):
@@ -112,7 +111,6 @@ def train_PG(exp_name='',
     # Observation and action sizes
     ob_dim = env.observation_space.shape[0]
     ac_dim = env.action_space.n if discrete else env.action_space.shape[0]
-
     #========================================================================================#
     #                           ----------SECTION 4----------
     # Placeholders
@@ -171,14 +169,15 @@ def train_PG(exp_name='',
 
     if discrete:
         # YOUR_CODE_HERE
-        with tf.variable_scope('disc'):
-            sy_logits_na = build_mlp(sy_ob_no, ac_dim, disc)
-            sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
-            sy_logprob_n = tf.log(sy_sampled_ac)
+        sy_logits_na = build_mlp(sy_ob_no, ac_dim, 'disc')
+        sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
+
+        indx = tf.one_hot(sy_ac_na,sy_logits_na.shape[1])
+        sy_logprob_n = tf.log( tf.reduce_sum(sy_logits_na*indx,1) )
 
     else:
         # YOUR_CODE_HERE
-        sy_mean = 
+        sy_mean = build_mlp(sy_ob_no, ac_dim, 'cont')
         sy_logstd = TODO # logstd should just be a trainable variable, not a network output.
         sy_sampled_ac = TODO
         sy_logprob_n = TODO  # Hint: Use the log probability under a multivariate gaussian. 
