@@ -172,15 +172,23 @@ def train_PG(exp_name='',
         sy_logits_na = build_mlp(sy_ob_no, ac_dim, 'disc')
         sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
 
-        indx = tf.one_hot(sy_ac_na,sy_logits_na.shape[1])
+        indx = tf.one_hot(sy_ac_na,ac_dim)#sy_logits_na.shape[1])
         sy_logprob_n = tf.log( tf.reduce_sum(sy_logits_na*indx,1) )
+        #sy_logprob_n = tf.map_fn(sy_logits_na, sy_sampled_ac)
 
     else:
         # YOUR_CODE_HERE
-        sy_mean = build_mlp(sy_ob_no, ac_dim, 'cont')
-        sy_logstd = TODO # logstd should just be a trainable variable, not a network output.
-        sy_sampled_ac = TODO
-        sy_logprob_n = TODO  # Hint: Use the log probability under a multivariate gaussian. 
+        sy_out_na = build_mlp(sy_ob_no, ac_dim, 'cont')
+        sy_mean = tf.reduce_mean(sy_out_na, 1)
+        sy_mean = tf.reshape(sy_mean,[-1,1])
+        with tf.variable_scope("cont"):
+            # logstd should just be a trainable variable, not a network output.
+            sy_logstd = tf.get_variable("logstd", [1, ac_dim], tf.float32)
+        sy_sampled_ac = tf.tile(tf.reshape(sy_mean,[-1,1]),[1, ac_dim]) + tf.matmul(tf.random_normal(tf.shape(sy_mean)),tf.exp(sy_logstd))
+        # Hint: Use the log probability under a multivariate gaussian. 
+        sy_diff = sy_out_na-sy_ac_na
+        sy_logstd_diag = tf.diag(tf.reshape(sy_logstd,[-1]))
+        sy_logprob_n = tf.reduce_sum( tf.matmul(sy_diff,sy_logstd_diag)*sy_diff, 1)  
 
 
 
