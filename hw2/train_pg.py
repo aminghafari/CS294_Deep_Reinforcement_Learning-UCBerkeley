@@ -188,7 +188,7 @@ def train_PG(exp_name='',
         # Hint: Use the log probability under a multivariate gaussian. 
         sy_diff = sy_out_na-sy_ac_na
         sy_logstd_diag = tf.diag(tf.reshape(sy_logstd,[-1]))
-        sy_logprob_n = tf.reduce_sum( tf.matmul(sy_diff,sy_logstd_diag)*sy_diff, 1)  
+        sy_logprob_n = -0.5*tf.reduce_sum( tf.matmul(sy_diff,sy_logstd_diag)*sy_diff, 1)  
 
 
 
@@ -196,8 +196,16 @@ def train_PG(exp_name='',
     #                           ----------SECTION 4----------
     # Loss Function and Training Operation
     #========================================================================================#
+    if discrete:
+        labels = tf.one_hot(sy_ac_na,ac_dim)
+        negative_likelihoods =  tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=sy_logits_na)
+        weighted_negative_likelihoods = tf.multiply(negative_likelihoods, sy_adv_n)
+        loss = tf.reduce_mean(weighted_negative_likelihoods)
+    else:
+        weighted_negative_likelihoods = tf.multiply(sy_logprob_n, sy_adv_n)
+        loss = tf.reduce_mean(weighted_negative_likelihoods)
 
-    loss = TODO # Loss function that we'll differentiate to get the policy gradient.
+
     update_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 
@@ -329,7 +337,11 @@ def train_PG(exp_name='',
         #====================================================================================#
 
         # YOUR_CODE_HERE
-        q_n = TODO
+        q_n = 0
+        if not reward_to_go:
+            q_n = TODO
+        else:
+            q_n = TODO
 
         #====================================================================================#
         #                           ----------SECTION 5----------
