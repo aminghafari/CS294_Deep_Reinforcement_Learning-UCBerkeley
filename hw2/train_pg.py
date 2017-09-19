@@ -171,7 +171,8 @@ def train_PG(exp_name='',
         # YOUR_CODE_HERE
         sy_logits_na = build_mlp(sy_ob_no, ac_dim, 'disc')
         sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
-
+        sy_sampled_ac.shape = tf.squeeze(sy_sampled_ac.shape,axis=1)
+        print(sy_sampled_ac.shape)
         indx = tf.one_hot(sy_ac_na,ac_dim)#sy_logits_na.shape[1])
         sy_logprob_n = tf.log( tf.reduce_sum(sy_logits_na*indx,1) )
         #sy_logprob_n = tf.map_fn(sy_logits_na, sy_sampled_ac)
@@ -338,12 +339,19 @@ def train_PG(exp_name='',
         #====================================================================================#
 
         # YOUR_CODE_HERE
-        q_n = 0
-        if not reward_to_go:
-            q_n = TODO
-        else:
-            q_n = TODO
-
+        q_temp = []
+        q_n = []
+        for path in paths:
+            rew = path["reward"]
+            pows = np.arange(pathlength(path))
+            temp = np.multiply(np.power(gamma, pows), rew)
+            if not reward_to_go:
+                q_temp = np.ones((pathlength(path)))*np.sum(temp)
+            else:
+                q_temp = np.zeros((pathlength(path)))
+                for t in range(pathlength(path)):
+                    q_temp[t] = np.sum(temp[t:-1])/gamma**t
+            q_n = np.append(q_n, q_temp)
         #====================================================================================#
         #                           ----------SECTION 5----------
         # Computing Baselines
@@ -372,7 +380,7 @@ def train_PG(exp_name='',
             # On the next line, implement a trick which is known empirically to reduce variance
             # in policy gradient methods: normalize adv_n to have mean zero and std=1. 
             # YOUR_CODE_HERE
-            pass
+            adv_n = (adv_n-np.mean(adv_n))/np.std(adv_n)
 
 
         #====================================================================================#
@@ -405,13 +413,18 @@ def train_PG(exp_name='',
         # and after an update, and then log them below. 
 
         # YOUR_CODE_HERE
-
+        feed_dict = {sy_ob_no : ob_no, sy_ac_na : ac_na, sy_adv_n : adv_n}
+        l1 = sess.run(loss, feed_dict=feed_dict)
+        sess.run(update_op, feed_dict=feed_dict)
+        l2 = sess.run(loss, feed_dict=feed_dict)
 
         # Log diagnostics
         returns = [path["reward"].sum() for path in paths]
         ep_lengths = [pathlength(path) for path in paths]
         logz.log_tabular("Time", time.time() - start)
         logz.log_tabular("Iteration", itr)
+        logz.log_tabular("l1", l1)
+        logz.log_tabular("l2", l2)
         logz.log_tabular("AverageReturn", np.mean(returns))
         logz.log_tabular("StdReturn", np.std(returns))
         logz.log_tabular("MaxReturn", np.max(returns))
