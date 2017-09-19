@@ -199,6 +199,7 @@ def train_PG(exp_name='',
     if discrete:
         labels = tf.one_hot(sy_ac_na,ac_dim)
         negative_likelihoods =  tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=sy_logits_na)
+
         weighted_negative_likelihoods = tf.multiply(negative_likelihoods, sy_adv_n)
         loss = tf.reduce_mean(weighted_negative_likelihoods)
     else:
