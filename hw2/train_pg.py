@@ -171,7 +171,7 @@ def train_PG(exp_name='',
         # YOUR_CODE_HERE
         sy_logits_na = build_mlp(sy_ob_no, ac_dim, 'disc')
         sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
-        sy_sampled_ac.shape = tf.squeeze(sy_sampled_ac.shape,axis=1)
+        sy_sampled_ac = tf.reshape(sy_sampled_ac,[-1])
         print(sy_sampled_ac.shape)
         indx = tf.one_hot(sy_ac_na,ac_dim)#sy_logits_na.shape[1])
         sy_logprob_n = tf.log( tf.reduce_sum(sy_logits_na*indx,1) )
