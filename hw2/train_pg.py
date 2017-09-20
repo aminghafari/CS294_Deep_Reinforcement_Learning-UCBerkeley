@@ -172,24 +172,23 @@ def train_PG(exp_name='',
         sy_logits_na = build_mlp(sy_ob_no, ac_dim, 'disc')
         sy_sampled_ac = tf.multinomial(sy_logits_na, 1) # Hint: Use the tf.multinomial op
         sy_sampled_ac = tf.reshape(sy_sampled_ac,[-1])
-        print(sy_sampled_ac.shape)
-        indx = tf.one_hot(sy_ac_na,ac_dim)#sy_logits_na.shape[1])
-        sy_logprob_n = tf.log( tf.reduce_sum(sy_logits_na*indx,1) )
-        #sy_logprob_n = tf.map_fn(sy_logits_na, sy_sampled_ac)
+        indx = tf.one_hot(sy_ac_na,ac_dim)
+        logits = tf.reduce_sum(sy_logits_na*indx,1)
+        sy_logprob_n =  -logits + tf.log(tf.reduce_sum(tf.exp(sy_logits_na), axis=1))
 
     else:
         # YOUR_CODE_HERE
         sy_out_na = build_mlp(sy_ob_no, ac_dim, 'cont')
-        sy_mean = tf.reduce_mean(sy_out_na, 1)
-        sy_mean = tf.reshape(sy_mean,[-1,1])
+        sy_mean = tf.reduce_mean(sy_out_na, 0)
         with tf.variable_scope("cont"):
             # logstd should just be a trainable variable, not a network output.
-            sy_logstd = tf.get_variable("logstd", [1, ac_dim], tf.float32)
-        sy_sampled_ac = tf.tile(tf.reshape(sy_mean,[-1,1]),[1, ac_dim]) + tf.matmul(tf.random_normal(tf.shape(sy_mean)),tf.exp(sy_logstd))
+            sy_logstd = tf.get_variable("logstd", [ac_dim], tf.float32)
+
+        sy_logstd_diag = tf.diag(tf.reshape(sy_logstd,[-1]))
+        sy_sampled_ac = tf.matmul(tf.ones_like(sy_out_na), tf.diag(sy_mean)) + tf.matmul(tf.random_normal(tf.shape(sy_out_na)),sy_logstd_diag)
         # Hint: Use the log probability under a multivariate gaussian. 
         sy_diff = sy_out_na-sy_ac_na
-        sy_logstd_diag = tf.diag(tf.reshape(sy_logstd,[-1]))
-        sy_logprob_n = -0.5*tf.reduce_sum( tf.matmul(sy_diff,sy_logstd_diag)*sy_diff, 1)  
+        sy_logprob_n = -tf.log(tf.norm(sy_logstd)) + 0.5*tf.reduce_sum( tf.matmul(sy_diff,tf.matrix_inverse(sy_logstd_diag**2))*sy_diff, axis = 1)
 
 
 
@@ -197,16 +196,8 @@ def train_PG(exp_name='',
     #                           ----------SECTION 4----------
     # Loss Function and Training Operation
     #========================================================================================#
-    if discrete:
-        labels = tf.one_hot(sy_ac_na,ac_dim)
-        negative_likelihoods =  tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=sy_logits_na)
-
-        weighted_negative_likelihoods = tf.multiply(negative_likelihoods, sy_adv_n)
-        loss = tf.reduce_mean(weighted_negative_likelihoods)
-    else:
-        weighted_negative_likelihoods = tf.multiply(sy_logprob_n, sy_adv_n)
-        loss = tf.reduce_mean(weighted_negative_likelihoods)
-
+    weighted_negative_likelihoods = tf.multiply(tf.reshape(sy_logprob_n,[-1,1]), tf.reshape(sy_adv_n,[-1,1]))
+    loss = tf.reduce_mean(weighted_negative_likelihoods)
 
     update_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
@@ -226,7 +217,9 @@ def train_PG(exp_name='',
         # Define placeholders for targets, a loss function and an update op for fitting a 
         # neural network baseline. These will be used to fit the neural network baseline. 
         # YOUR_CODE_HERE
-        baseline_update_op = TODO
+        sy_trg_n = tf.placeholder(shape=[None], name="adv", dtype=tf.float32) 
+        baseline_loss = tf.nn.l2_loss(baseline_prediction-sy_trg_n)
+        baseline_update_op = tf.train.AdamOptimizer(learning_rate).minimize(baseline_loss)
 
 
     #========================================================================================#
@@ -266,7 +259,7 @@ def train_PG(exp_name='',
                 ac = sess.run(sy_sampled_ac, feed_dict={sy_ob_no : ob[None]})
                 ac = ac[0]
                 acs.append(ac)
-                ob, rew, done, _ = env.step(ac)
+                ob, rew, done, _ = env.step(ac) 
                 rewards.append(rew)
                 steps += 1
                 if done or steps > max_path_length:
@@ -365,8 +358,8 @@ def train_PG(exp_name='',
             # Hint #bl1: rescale the output from the nn_baseline to match the statistics
             # (mean and std) of the current or previous batch of Q-values. (Goes with Hint
             # #bl2 below.)
-
-            b_n = TODO
+            b_n = sess.run(baseline_prediction, feed_dict = {sy_ob_no : ob_no})
+            #b_n = 
             adv_n = q_n - b_n
         else:
             adv_n = q_n.copy()
@@ -399,7 +392,8 @@ def train_PG(exp_name='',
             # targets to have mean zero and std=1. (Goes with Hint #bl1 above.)
 
             # YOUR_CODE_HERE
-            pass
+            rew_na = np.concatenate([path["reward"] for path in paths])
+            sess.run(baseline_prediction, feed_dict = {sy_trg_n : rew_na + b_n})
 
         #====================================================================================#
         #                           ----------SECTION 4----------
