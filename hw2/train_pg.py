@@ -178,25 +178,30 @@ def train_PG(exp_name='',
 
     else:
         # YOUR_CODE_HERE
-        sy_out_na = build_mlp(sy_ob_no, ac_dim, 'cont')
-        sy_mean = tf.reduce_mean(sy_out_na, 0)
+        # Network Output
+        sy_mean = build_mlp(sy_ob_no, ac_dim, 'cont', activation=tf.nn.elu, output_activation=tf.tanh)
         with tf.variable_scope("cont"):
             # logstd should just be a trainable variable, not a network output.
             sy_logstd = tf.get_variable("logstd", [ac_dim], tf.float32)
 
         sy_logstd_diag = tf.diag(tf.reshape(sy_logstd,[-1]))
-        sy_sampled_ac = tf.matmul(tf.ones_like(sy_out_na), tf.diag(sy_mean)) + tf.matmul(tf.random_normal(tf.shape(sy_out_na)),sy_logstd_diag)
-        # Hint: Use the log probability under a multivariate gaussian. 
-        sy_diff = sy_out_na-sy_ac_na
-        sy_logprob_n = -tf.log(tf.norm(sy_logstd)) + 0.5*tf.reduce_sum( tf.matmul(sy_diff,tf.matrix_inverse(sy_logstd_diag**2))*sy_diff, axis = 1)
-
+        sy_sampled_ac = sy_mean + tf.matmul(tf.random_normal(tf.shape(sy_mean)),tf.exp(sy_logstd_diag))
+        #sy_sampled_ac = sy_mean + tf.matmul(tf.random_normal(tf.shape(sy_mean)),tf.exp(sy_logstd_diag))
+        # Hint: Use the log probability under a multivariate gaussian.
+        sy_diff = sy_ac_na-sy_mean
+        sy_diff_err = tf.matmul(sy_diff,tf.matrix_inverse(tf.exp(sy_logstd_diag)))
+        sy_diff_err_sqrd = tf.multiply(sy_diff_err, sy_diff)
+        #sy_logprob_n = sy_logstd + 0.5*tf.reduce_sum( sy_diff_err_sqrd, axis = 1)
+        sy_logprob_n = tf.norm(sy_logstd) + 0.5*tf.reduce_sum( sy_diff_err_sqrd, axis = 1)
 
 
     #========================================================================================#
     #                           ----------SECTION 4----------
     # Loss Function and Training Operation
     #========================================================================================#
-    weighted_negative_likelihoods = tf.multiply(tf.reshape(sy_logprob_n,[-1,1]), tf.reshape(sy_adv_n,[-1,1]))
+    print(sy_logprob_n.shape)
+    sy_logprob_n_sum = tf.reduce_sum(tf.reshape(sy_logprob_n,[-1,1]), 1)
+    weighted_negative_likelihoods = tf.multiply(tf.reshape(sy_logprob_n_sum,[-1,1]), tf.reshape(sy_adv_n,[-1,1]))
     loss = tf.reduce_mean(weighted_negative_likelihoods)
 
     update_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
@@ -359,7 +364,7 @@ def train_PG(exp_name='',
             # (mean and std) of the current or previous batch of Q-values. (Goes with Hint
             # #bl2 below.)
             b_n = sess.run(baseline_prediction, feed_dict = {sy_ob_no : ob_no})
-            #b_n = 
+            b_n = b_n*np.std(q_n) + np.mean(q_n)
             adv_n = q_n - b_n
         else:
             adv_n = q_n.copy()
@@ -392,8 +397,10 @@ def train_PG(exp_name='',
             # targets to have mean zero and std=1. (Goes with Hint #bl1 above.)
 
             # YOUR_CODE_HERE
-            rew_na = np.concatenate([path["reward"] for path in paths])
-            sess.run(baseline_prediction, feed_dict = {sy_trg_n : rew_na + b_n})
+            rew_n = np.concatenate([path["reward"] for path in paths])
+            trg_n = rew_n + b_n
+            trg_n = (trg_n-np.mean(trg_n))/np.std(trg_n)
+            sess.run(baseline_update_op, feed_dict = {sy_trg_n : trg_n, sy_ob_no : ob_no})
 
         #====================================================================================#
         #                           ----------SECTION 4----------
@@ -417,8 +424,6 @@ def train_PG(exp_name='',
         ep_lengths = [pathlength(path) for path in paths]
         logz.log_tabular("Time", time.time() - start)
         logz.log_tabular("Iteration", itr)
-        logz.log_tabular("l1", l1)
-        logz.log_tabular("l2", l2)
         logz.log_tabular("AverageReturn", np.mean(returns))
         logz.log_tabular("StdReturn", np.std(returns))
         logz.log_tabular("MaxReturn", np.max(returns))
