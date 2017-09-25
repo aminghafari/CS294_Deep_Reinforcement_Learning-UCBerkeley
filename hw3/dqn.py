@@ -129,12 +129,14 @@ def learn(env,
      
     # YOUR CODE HERE
     # output of Q function from the model
-    Q_ph      = q_func( obs_t_float, scope="q_func", reuse=False)
+    Q_ph      = q_func( obs_t_float, num_actions, scope="q_func", reuse=False)
+    sampled_ac = tf.multinomial(Q_ph, 1)
+    sampled_ac = tf.reshape(sampled_ac,[-1])
     # variables
     q_func_vars  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
     
     # target function using the rewards
-    Q_trg              = Qq_func( obs_tp1_float, scope="target_q_func", reuse=False)
+    Q_trg              = q_func( obs_tp1_float, num_actions, scope="target_q_func", reuse=False)
     Q_trg           = rew_t_ph + tf.multiply( 1-done_mask_ph, gamma*tf.reduce_max(Q_trg, axis=1))
     # variables
     target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_func')
@@ -206,17 +208,21 @@ def learn(env,
         #####
         
         # YOUR CODE HERE
-
         # add the last_obs
         idx = replay_buffer.store_frame(last_obs)
         # extract obs from the replay_buffer
-        obs_ = replay_buffer.encode_recent_observation()
+        obs_ = [replay_buffer.encode_recent_observation()]
         
         # action from the model
-        action = session.run(Q_ph, feed_dict={ obs_t_ph: obs_})
+        if t==0:
+            action = np.random.randint(num_actions)
+        else:
+            action = session.run(sampled_ac, feed_dict={ obs_t_ph: obs_})
+            action = action[0]
+
         last_obs, reward, done, info = env.step(action)
 
-        store_effect(idx, action, reward, done)
+        replay_buffer.store_effect(idx, action, reward, done)
         # If it is reached an episode boundary
         if done:
             last_obs = env.reset()
