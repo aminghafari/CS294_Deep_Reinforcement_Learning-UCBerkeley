@@ -126,9 +126,20 @@ def learn(env,
     # q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
     # Older versions of TensorFlow may require using "VARIABLES" instead of "GLOBAL_VARIABLES"
     ######
-    
+     
     # YOUR CODE HERE
-
+    # output of Q function from the model
+    Q_ph      = q_func( obs_t_float, scope="q_func", reuse=False)
+    # variables
+    q_func_vars  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
+    
+    # target function using the rewards
+    Q_trg              = Qq_func( obs_tp1_float, scope="target_q_func", reuse=False)
+    Q_trg           = rew_t_ph + tf.multiply( 1-done_mask_ph, gamma*tf.reduce_max(Q_trg, axis=1))
+    # variables
+    target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_func')
+    
+    total_error = tf.nn.l2_loss(Q_ph-Q_trg)	
     ######
 
     # construct optimization op (with gradient clipping)
@@ -196,6 +207,20 @@ def learn(env,
         
         # YOUR CODE HERE
 
+        # add the last_obs
+        idx = replay_buffer.store_frame(last_obs)
+        # extract obs from the replay_buffer
+        obs_ = replay_buffer.encode_recent_observation()
+        
+        # action from the model
+        action = session.run(Q_ph, feed_dict={ obs_t_ph: obs_})
+        last_obs, reward, done, info = env.step(action)
+
+        store_effect(idx, action, reward, done)
+        # If it is reached an episode boundary
+        if done:
+            last_obs = env.reset()
+
         #####
 
         # at this point, the environment should have been advanced one step (and
@@ -245,6 +270,12 @@ def learn(env,
             #####
             
             # YOUR CODE HERE
+
+            # 3.a sample batches
+            obs_t_batch, act_batch, rew_batch, obs_tp1_batch, done_mask = replay_buffer.sample(batch_size)
+            
+            # 3.b 
+            
 
             #####
 
