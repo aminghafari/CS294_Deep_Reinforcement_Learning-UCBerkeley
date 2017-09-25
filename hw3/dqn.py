@@ -274,8 +274,23 @@ def learn(env,
             # 3.a sample batches
             obs_t_batch, act_batch, rew_batch, obs_tp1_batch, done_mask = replay_buffer.sample(batch_size)
             
-            # 3.b 
+            # 3.b initialize the model
+            if not model_initialized:
+                initialize_interdependent_variables(session, tf.global_variables(), {
+                    obs_t_ph: obs_t_batch,
+                    obs_tp1_ph: obs_tp1_batch,
+                })
+
+            #3.c train the model
+            feed_dict = {obs_t_ph: obs_t_batch, act_t_ph: act_batch, rew_t_ph: rew_batch,
+                obs_tp1_ph: obs_tp1_batch, done_mask_ph: done_mask, 
+                learning_rate : optimizer_spec.lr_schedule.value(t)}
             
+            session.run(train_fn, feed_dict = feed_dict)
+
+            # update the network
+            if t%target_update_freq == 1:
+                session.run(update_target_fn)
 
             #####
 
