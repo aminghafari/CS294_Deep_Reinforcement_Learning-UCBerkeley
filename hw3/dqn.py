@@ -129,9 +129,10 @@ def learn(env,
      
     # YOUR CODE HERE
     # output of Q function from the model
-    Q_ph      = q_func( obs_t_float, num_actions, scope="q_func", reuse=False)
+    Q_ph       = q_func( obs_t_float, num_actions, scope="q_func", reuse=False)
     sampled_ac = tf.multinomial(Q_ph, 1)
     sampled_ac = tf.reshape(sampled_ac,[-1])
+    Q_ph_max   = tf.reduce_max(Q_ph, axis=1)
     # variables
     q_func_vars  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
     
@@ -141,7 +142,7 @@ def learn(env,
     # variables
     target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_func')
     
-    total_error = tf.nn.l2_loss(Q_ph-Q_trg)	
+    total_error = tf.nn.l2_loss(Q_ph_max-Q_trg)	
     ######
 
     # construct optimization op (with gradient clipping)
@@ -214,7 +215,7 @@ def learn(env,
         obs_ = [replay_buffer.encode_recent_observation()]
         
         # action from the model
-        if t==0:
+        if not model_initialized:
             action = np.random.randint(num_actions)
         else:
             action = session.run(sampled_ac, feed_dict={ obs_t_ph: obs_})
@@ -297,9 +298,7 @@ def learn(env,
             # update the network
             if t%target_update_freq == 1:
                 session.run(update_target_fn)
-
             #####
-
         ### 4. Log progress
         episode_rewards = get_wrapper_by_name(env, "Monitor").get_episode_rewards()
         if len(episode_rewards) > 0:
