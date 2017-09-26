@@ -129,20 +129,19 @@ def learn(env,
      
     # YOUR CODE HERE
     # output of Q function from the model
-    Q_ph       = q_func( obs_t_float, num_actions, scope="q_func", reuse=False)
-    sampled_ac = tf.multinomial(Q_ph, 1)
-    sampled_ac = tf.reshape(sampled_ac,[-1])
-    Q_ph_max   = tf.reduce_max(Q_ph, axis=1)
+    Q_st_ph     = q_func( obs_t_float, num_actions, scope="q_func", reuse=False)
+    indx = tf.one_hot(act_t_ph, num_actions)
+    Q_stat_ph = tf.reduce_sum(Q_st_ph*indx,axis = 1)
     # variables
     q_func_vars  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
     
     # target function using the rewards
-    Q_trg              = q_func( obs_tp1_float, num_actions, scope="target_q_func", reuse=False)
-    Q_trg           = rew_t_ph + tf.multiply( 1-done_mask_ph, gamma*tf.reduce_max(Q_trg, axis=1))
+    Q_st_php = q_func( obs_tp1_float, num_actions, scope="target_q_func", reuse=False)
+    y_ = rew_t_ph + tf.multiply( 1.-done_mask_ph, gamma*tf.reduce_max(Q_st_php, axis=1))
     # variables
     target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_func')
     
-    total_error = tf.nn.l2_loss(Q_ph_max-Q_trg)	
+    total_error = tf.nn.l2_loss(Q_stat_ph-y_)
     ######
 
     # construct optimization op (with gradient clipping)
@@ -218,7 +217,15 @@ def learn(env,
         if not model_initialized:
             action = np.random.randint(num_actions)
         else:
-            action = session.run(sampled_ac, feed_dict={ obs_t_ph: obs_})
+            # epsilon greedy exploration
+            argmax_Q = tf.argmax(Q_st_ph, axis=1)
+            args = tf.one_hot(argmax_Q, num_actions)
+            eps = exploration.value(t)
+            actions = args*(1.-eps)+(1.-args)*eps/(num_actions-1.)
+            # choose based on probability
+            actions = tf.multinomial(actions, 1)
+            actions = tf.reshape(actions, [-1])
+            action = session.run(actions, feed_dict={ obs_t_ph: obs_})
             action = action[0]
 
         last_obs, reward, done, info = env.step(action)
@@ -287,6 +294,7 @@ def learn(env,
                     obs_t_ph: obs_t_batch,
                     obs_tp1_ph: obs_tp1_batch,
                 })
+                model_initialized = True
 
             #3.c train the model
             feed_dict = {obs_t_ph: obs_t_batch, act_t_ph: act_batch, rew_t_ph: rew_batch,
@@ -296,7 +304,7 @@ def learn(env,
             session.run(train_fn, feed_dict = feed_dict)
 
             # update the network
-            if t%target_update_freq == 1:
+            if t%target_update_freq == 0:
                 session.run(update_target_fn)
             #####
         ### 4. Log progress
