@@ -7,6 +7,7 @@ import tensorflow                as tf
 import tensorflow.contrib.layers as layers
 from collections import namedtuple
 from dqn_utils import *
+import os
 
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs", "lr_schedule"])
 
@@ -181,6 +182,22 @@ def learn(env,
     last_obs = env.reset()
     LOG_EVERY_N_STEPS = 10000
 
+    if os.path.isfile('mr.txt'):
+        os.remove('mr.txt')
+    else:
+        f = open("mr.txt","w")
+        f.close()
+    if os.path.isfile('bmr.txt'):
+        os.remove('bmr.txt')
+    else:
+        f = open("bmr.txt","w")
+        f.close()
+    if os.path.isfile('t.txt'):
+        os.remove('t.txt')
+    else:
+        f = open("t.txt","w")
+        f.close()
+
     for t in itertools.count():
         ### 1. Check stopping criterion
         if stopping_criterion is not None and stopping_criterion(env, t):
@@ -324,3 +341,14 @@ def learn(env,
             print("exploration %f" % exploration.value(t))
             print("learning_rate %f" % optimizer_spec.lr_schedule.value(t))
             sys.stdout.flush()
+
+            f = open("mr.txt","a")
+            f.write(str(mean_episode_reward)+'\n')
+            f.close()
+            f = open("bmr.txt","a")
+            f.write(str(best_mean_episode_reward)+'\n')
+            f.close()
+            f = open("t.txt","a")
+            f.write(str(t)+'\n')
+            f.close()
+
