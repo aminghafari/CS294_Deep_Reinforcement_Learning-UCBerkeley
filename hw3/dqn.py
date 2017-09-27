@@ -132,6 +132,15 @@ def learn(env,
     Q_st_ph     = q_func( obs_t_float, num_actions, scope="q_func", reuse=False)
     indx = tf.one_hot(act_t_ph, num_actions)
     Q_stat_ph = tf.reduce_sum(Q_st_ph*indx,axis = 1)
+    
+    # compute the action for epsilon greedy exploration
+    argmax_Q = tf.argmax(Q_st_ph, axis=1)
+    args = tf.one_hot(argmax_Q, num_actions)
+    expl = exploration.value(np.random.rand(1))
+    sy_actions = args*(1.-expl)+(1.-args)*expl/(num_actions-1.)
+    # choose based on probability
+    sy_actions = tf.multinomial(sy_actions, 1)
+    sy_actions = tf.reshape(sy_actions, [-1])
     # variables
     q_func_vars  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
     
@@ -142,6 +151,8 @@ def learn(env,
     target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_func')
     
     total_error = tf.nn.l2_loss(Q_stat_ph-y_)
+
+
     ######
 
     # construct optimization op (with gradient clipping)
@@ -174,7 +185,6 @@ def learn(env,
         ### 1. Check stopping criterion
         if stopping_criterion is not None and stopping_criterion(env, t):
             break
-
         ### 2. Step the env and store the transition
         # At this point, "last_obs" contains the latest observation that was
         # recorded from the simulator. Here, your code needs to store this
@@ -218,15 +228,8 @@ def learn(env,
             action = np.random.randint(num_actions)
         else:
             # epsilon greedy exploration
-            argmax_Q = tf.argmax(Q_st_ph, axis=1)
-            args = tf.one_hot(argmax_Q, num_actions)
-            eps = exploration.value(t)
-            actions = args*(1.-eps)+(1.-args)*eps/(num_actions-1.)
-            # choose based on probability
-            actions = tf.multinomial(actions, 1)
-            actions = tf.reshape(actions, [-1])
-            action = session.run(actions, feed_dict={ obs_t_ph: obs_})
-            action = action[0]
+            actions = session.run(sy_actions, feed_dict={ obs_t_ph: obs_})
+            action = actions[0]
 
         last_obs, reward, done, info = env.step(action)
 
