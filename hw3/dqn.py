@@ -135,13 +135,13 @@ def learn(env,
     Q_stat_ph = tf.reduce_sum(Q_st_ph*indx,axis = 1)
     
     # compute the action for epsilon greedy exploration
-    argmax_Q = tf.argmax(Q_st_ph, axis=1)
-    args = tf.one_hot(argmax_Q, num_actions)
-    expl = exploration.value(np.random.rand(1))
-    sy_actions = args*(1.-expl)+(1.-args)*expl/(num_actions-1.)
+    #argmax_Q = tf.argmax(Q_st_ph, axis=1)
+    #args = tf.one_hot(argmax_Q, num_actions)
+    #expl = exploration.value(np.random.rand(1))
+    #sy_actions = args*(1.-expl)+(1.-args)*expl/(num_actions-1.)
     # choose based on probability
-    sy_actions = tf.multinomial(sy_actions, 1)
-    sy_actions = tf.reshape(sy_actions, [-1])
+    #sy_actions = tf.multinomial(sy_actions, 1)
+    #sy_actions = tf.reshape(sy_actions, [-1])
     # variables
     q_func_vars  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_func')
     
@@ -182,20 +182,23 @@ def learn(env,
     last_obs = env.reset()
     LOG_EVERY_N_STEPS = 10000
 
-    if os.path.isfile('mr.txt'):
-        os.remove('mr.txt')
+    fmr = 'mr.txt'
+    bmr = 'bmr.txt'
+    tmr = 't.txt'
+    if os.path.isfile(fmr):
+        os.remove(fmr)
     else:
-        f = open("mr.txt","w")
+        f = open(fmr,"w")
         f.close()
-    if os.path.isfile('bmr.txt'):
-        os.remove('bmr.txt')
+    if os.path.isfile(bmr):
+        os.remove(bmr)
     else:
-        f = open("bmr.txt","w")
+        f = open(bmr,"w")
         f.close()
-    if os.path.isfile('t.txt'):
-        os.remove('t.txt')
+    if os.path.isfile(tmr):
+        os.remove(tmr)
     else:
-        f = open("t.txt","w")
+        f = open(tmr,"w")
         f.close()
 
     for t in itertools.count():
@@ -245,8 +248,14 @@ def learn(env,
             action = np.random.randint(num_actions)
         else:
             # epsilon greedy exploration
-            actions = session.run(sy_actions, feed_dict={ obs_t_ph: obs_})
-            action = actions[0]
+            Q_val = session.run(Q_st_ph, feed_dict={ obs_t_ph: obs_})
+            
+            e = exploration.value(t)
+            
+            if np.random.rand(1)<e:
+                action = env.action_space.sample()
+            else :
+                action = np.argmax(Q_val, axis=1)
 
         last_obs, reward, done, info = env.step(action)
 
@@ -342,13 +351,13 @@ def learn(env,
             print("learning_rate %f" % optimizer_spec.lr_schedule.value(t))
             sys.stdout.flush()
 
-            f = open("mr.txt","a")
+            f = open(mr,"a")
             f.write(str(mean_episode_reward)+'\n')
             f.close()
-            f = open("bmr.txt","a")
+            f = open(bmr,"a")
             f.write(str(best_mean_episode_reward)+'\n')
             f.close()
-            f = open("t.txt","a")
+            f = open(tmr,"a")
             f.write(str(t)+'\n')
             f.close()
 
