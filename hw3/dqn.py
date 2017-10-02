@@ -182,13 +182,13 @@ def learn(env,
     last_obs = env.reset()
     LOG_EVERY_N_STEPS = 10000
 
-    fmr = 'mr.txt'
+    mr = 'mr.txt'
     bmr = 'bmr.txt'
     tmr = 't.txt'
-    if os.path.isfile(fmr):
-        os.remove(fmr)
+    if os.path.isfile(mr):
+        os.remove(mr)
     else:
-        f = open(fmr,"w")
+        f = open(mr,"w")
         f.close()
     if os.path.isfile(bmr):
         os.remove(bmr)
