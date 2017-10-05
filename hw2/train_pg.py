@@ -1,3 +1,6 @@
+## Modified by Amin Ghafari, 25911193,  Deep RL Assignment 2
+
+
 import numpy as np
 import tensorflow as tf
 import gym
@@ -34,7 +37,9 @@ def build_mlp(
     #========================================================================================#
 
     with tf.variable_scope(scope):
+        # hidden layer 1
         h = tf.layers.dense(inputs= input_placeholder, units=size, activation = activation)
+        # other hidden layers
         for i in range(1,n_layers):
             h = tf.layers.dense(inputs= h, units=size, activation = activation)
         output = tf.layers.dense(inputs= h, units=output_size, activation = output_activation)
