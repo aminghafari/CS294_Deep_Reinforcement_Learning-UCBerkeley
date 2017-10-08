@@ -30,16 +30,15 @@ def sample(env,
         for n_horz in rang(horizon):
             obs.append(ob)
             ac = controller.get_action(ob)
-            ac[0]
             acs.append(ac)
             ob, rew, done, _ = env.step(ac)
             n_obs.append(ob)
             rewards.append(rew)
         
-        path = {"observation" : np.array(obs), 
+        path = {"observations" : np.array(obs), 
                 "next_observations" : np.array(n_obs),
-                "reward" : np.array(rewards), 
-                "action" : np.array(acs)}
+                "rewards" : np.array(rewards), 
+                "actions" : np.array(acs)}
         paths.append(path)
 
     return paths
@@ -55,6 +54,18 @@ def compute_normalization(data):
     """
 
     """ YOUR CODE HERE """
+    s_t     = [datum["observations"] for datum in data]
+    s_tp1   = [datum["next_observations"] for datum in data]
+    actions = [datum["actions"] for datum in data]
+
+    mean_obs = np.mean(s_t,axis = 0)
+    std_obs  = np.std(s_t,axis = 0)
+
+    mean_deltas = np.mean(s_tp1-s_t,axis = 0)
+    std_deltas  = np.std(s_tp1-s_t,axis = 0)
+
+    mean_action = np.mean(actions,axis = 0)
+    std_action  = np.std(actions,axis = 0)
     return mean_obs, std_obs, mean_deltas, std_deltas, mean_action, std_action
 
 
@@ -139,7 +150,7 @@ def train(env,
     # for normalizing inputs and denormalizing outputs
     # from the dynamics network. 
     # 
-    normalization = """ YOUR CODE HERE """
+    normalization = compute_normalization(paths)
 
 
     #========================================================
