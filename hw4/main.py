@@ -24,6 +24,23 @@ def sample(env,
     """
     paths = []
     """ YOUR CODE HERE """
+    for n_path in range(num_paths):
+        ob = env.reset()
+        obs, n_obs, acs, rewards = [], [], []
+        for n_horz in rang(horizon):
+            obs.append(ob)
+            ac = controller.get_action(ob)
+            ac[0]
+            acs.append(ac)
+            ob, rew, done, _ = env.step(ac)
+            n_obs.append(ob)
+            rewards.append(rew)
+        
+        path = {"observation" : np.array(obs), 
+                "next_observations" : np.array(n_obs),
+                "reward" : np.array(rewards), 
+                "action" : np.array(acs)}
+        paths.append(path)
 
     return paths
 
@@ -112,7 +129,7 @@ def train(env,
     random_controller = RandomController(env)
 
     """ YOUR CODE HERE """
-
+    paths = sample(env, random_controller, num_paths_random, env_horizon)
 
     #========================================================
     # 
