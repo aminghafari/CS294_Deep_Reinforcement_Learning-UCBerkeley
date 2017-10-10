@@ -85,7 +85,7 @@ class NNDynamicsModel():
 
         un_stp1 = n_stp1*std_delta + mean_deltas + actions
 
-
+        return un_stp1
 
 
 

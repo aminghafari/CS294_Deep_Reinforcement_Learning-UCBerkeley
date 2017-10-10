@@ -40,4 +40,26 @@ class MPCcontroller(Controller):
 	def get_action(self, state):
 		""" YOUR CODE HERE """
 		""" Note: be careful to batch your simulations through the model for speed """
-
+            # to store the cost and the first action of each path
+            cost = []
+            first_action = []
+            
+            # genrate the path
+            st = []
+            for n_hz in range(horizon):
+                ac, stp1 = [], []
+                for n_path in range(num_simulated_paths):
+                    if(n_hz==1):
+                        st.append(state)
+                    ac.append(env.action_space.sample())
+                stp1 = dyn_model(np.array(st), np.array(ac))
+                st = stp1
+                    
+                action = env.action_space.sample()
+                first_action.appen(action)
+                st = state
+                for n_hz in range(horizon):
+                    stp1 = dyn_model.predict(st,action)
+                    action = env.action_space.sample()
+                    cost = cost + cost_fn()
+                
