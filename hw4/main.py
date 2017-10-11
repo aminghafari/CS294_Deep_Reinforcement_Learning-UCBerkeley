@@ -58,14 +58,14 @@ def compute_normalization(data):
     s_tp1   = [datum["next_observations"] for datum in data]
     actions = [datum["actions"] for datum in data]
 
-    mean_obs = np.mean(s_t,axis = 0)
-    std_obs  = np.std(s_t,axis = 0)
+    mean_obs = np.mean(s_t,axis = (0,2))
+    std_obs  =  np.std(s_t,axis = (0,2))
 
-    mean_deltas = np.mean(s_tp1-s_t,axis = 0)
-    std_deltas  = np.std(s_tp1-s_t,axis = 0)
+    mean_deltas = np.mean(s_tp1-s_t,axis = (0,2))
+    std_deltas  =  np.std(s_tp1-s_t,axis = (0,2))
 
-    mean_action = np.mean(actions,axis = 0)
-    std_action  = np.std(actions,axis = 0)
+    mean_action = np.mean(actions,axis = (0,2))
+    std_action  =  np.std(actions,axis = (0,2))
     return mean_obs, std_obs, mean_deltas, std_deltas, mean_action, std_action
 
 
