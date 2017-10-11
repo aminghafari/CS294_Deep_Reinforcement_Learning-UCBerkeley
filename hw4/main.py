@@ -26,7 +26,7 @@ def sample(env,
     """ YOUR CODE HERE """
     for n_path in range(num_paths):
         ob = env.reset()
-        obs, n_obs, acs, rewards = [], [], []
+        obs, n_obs, acs, rewards = [], [], [],[]
         for n_horz in range(horizon):
             obs.append(ob)
             ac = controller.get_action(ob)
@@ -150,7 +150,7 @@ def train(env,
     # for normalizing inputs and denormalizing outputs
     # from the dynamics network. 
     # 
-    normalization = compute_normalization(paths)
+    normalization = compute_normalization(data)
 
 
     #========================================================
@@ -194,7 +194,7 @@ def train(env,
         dyn_model.fit(data)
         for n_path in range(num_paths_onpol):
             ob = env.reset()
-            obs, n_obs, acs, rewards = [], [], []
+            obs, n_obs, acs, rewards = [], [], [], []
             for n_horz in range(env_horizon):
                 obs.append(ob)
                 ac = mpc_controller.get_action(ob)
