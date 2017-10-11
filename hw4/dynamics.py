@@ -32,6 +32,7 @@ class NNDynamicsModel():
                  ):
         """ YOUR CODE HERE """
         """ Note: Be careful about normalization """
+        self.epsilon = 1e-7
         self.env = env
         self.n_layers = n_layers
         self.size = size
@@ -52,6 +53,7 @@ class NNDynamicsModel():
         self.delta_ =tf.placeholder(shape=[None, ob_dim], name="stp1_", dtype=tf.float32)
 
         self.nrm = tf.nn.l2_loss(delta-delta_)
+        self.update_op = tf.train.AdamOptimizer(learning_rate).minimize(nrm)
 
     def fit(self, data):
         """
@@ -63,21 +65,23 @@ class NNDynamicsModel():
         un_stp1 = data["next_observations"]
         un_at = data["actions"]
         
-        n_st = (un_st-mean_obs)/std_obs
-        n_at = (un_at-mean_action)/std_action
+        n_st = (un_st-mean_obs)/(std_obs+epsilon)
+        n_at = (un_at-mean_action)/(std_action+epsilon)
         n_stat = np.concatenate(n_st,n_at,axis=1)
 
-        n_delta = ((un_stp1-unst)-mean_deltas)/std_deltas
+        n_delta = ((un_stp1-unst)-mean_deltas)/(std_deltas+epsilon)
 
         feed_dict = {st_at : n_stat, delta_ : n_delta}
-        sess.run(nrm, feed_dict=feed_dict)
+
+        for i in range(iterations):
+            sess.run(update_op, feed_dict=feed_dict)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions and return the (unnormalized) next states as predicted by using the model """
         """ YOUR CODE HERE """
         
-        n_states = (states-mean_obs)/std_obs
-        n_actions = (un_at-mean_action)/std_action
+        n_states = (states-mean_obs)/(std_obs+epsilon)
+        n_actions = (un_at-mean_action)/(std_action+epsilon)
         n_stat = np.concatenate(n_states,n_actions,axis=1)
         
         feed_dict = {st_at : n_stat}

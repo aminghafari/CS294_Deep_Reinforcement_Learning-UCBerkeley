@@ -45,30 +45,39 @@ class MPCcontroller(Controller):
             first_action = []
             
             # genrate the path
-            paths = []
-            for n_path in range(num_simulated_paths):
-                states, actions, statesp1 = [], [], []
-                st = state
-                for n_hz in range(horizon):
-                    states.append(st)
-                    
-                    ac = env.action_space.sample()
-                    stp1 = dyn_model(st,ac)
+            # first set of states
+            st = np.repeat(state, num_simulated_paths, axis = 0)
+            ac = []
+            cost = np.zeros((num_simulated_paths,))
+            # loop for hirzon
+            for n_hz in range(horizon):
+                for n_path in range(num_simulated_paths):
+                    ac.append(env.action_space.sample())
+                    if(n_hz==0):
+                        ac_first = np.array(ac)
+                stp1 = dyn_model(st, np.array(ac))
 
-                    actions.append(ac)
-                    statesp1.append(stp1)
-                    st = stp1
+                cost = cost + cost_fn(st, np.array(ac), stp1)
+                st = stp1
 
-                cost = cost_fn(np.array(states), np.array(actions), np.array(statesp1))
-                path = {"action" : np.array(actions[0]), 
-                "cost" : np.array(cost)}
-                paths.append(path)
-
-            costs = paths["cost"]
-            actions = paths["action"]
+             
             arg_max = np.argmax(cost)
+            
+            return ac_first(arg_max[0],:)
 
-            return actions[arg_max, :]
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
