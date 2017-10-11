@@ -61,9 +61,9 @@ class MPCcontroller(Controller):
                 st = stp1
 
              
-            arg_max = np.argmax(cost)
+            arg_min = np.argmin(cost)
             
-            return ac_first(arg_max[0],:)
+            return ac_first(arg_min[0],:)
 
 
 

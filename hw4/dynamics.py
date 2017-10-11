@@ -61,9 +61,9 @@ class NNDynamicsModel():
         """
 
         """YOUR CODE HERE """
-        un_st = data["observations"]
-        un_stp1 = data["next_observations"]
-        un_at = data["actions"]
+        un_st = np.concatenate([datum["observations"] for datum in data])
+        un_stp1 = np.concatenate([datum["next_observations"] for datum in data])
+        un_at = np.concatenate([datum["actions"] for datum in data])
         
         n_st = (un_st-mean_obs)/(std_obs+epsilon)
         n_at = (un_at-mean_action)/(std_action+epsilon)

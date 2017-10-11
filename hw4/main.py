@@ -27,7 +27,7 @@ def sample(env,
     for n_path in range(num_paths):
         ob = env.reset()
         obs, n_obs, acs, rewards = [], [], []
-        for n_horz in rang(horizon):
+        for n_horz in range(horizon):
             obs.append(ob)
             ac = controller.get_action(ob)
             acs.append(ac)
@@ -54,18 +54,18 @@ def compute_normalization(data):
     """
 
     """ YOUR CODE HERE """
-    s_t     = [datum["observations"] for datum in data]
-    s_tp1   = [datum["next_observations"] for datum in data]
-    actions = [datum["actions"] for datum in data]
+    s_t     = np.concatenate([datum["observations"] for datum in data])
+    s_tp1   = np.concatenate([datum["next_observations"] for datum in data])
+    actions = np.concatenate([datum["actions"] for datum in data])
 
-    mean_obs = np.mean(s_t,axis = (0,2))
-    std_obs  =  np.std(s_t,axis = (0,2))
+    mean_obs = np.mean(s_t,axis = 0)
+    std_obs  =  np.std(s_t,axis = 0)
 
-    mean_deltas = np.mean(s_tp1-s_t,axis = (0,2))
-    std_deltas  =  np.std(s_tp1-s_t,axis = (0,2))
+    mean_deltas = np.mean(s_tp1-s_t,axis = 0)
+    std_deltas  =  np.std(s_tp1-s_t,axis = 0)
 
-    mean_action = np.mean(actions,axis = (0,2))
-    std_action  =  np.std(actions,axis = (0,2))
+    mean_action = np.mean(actions,axis = 0)
+    std_action  =  np.std(actions,axis = 0)
     return mean_obs, std_obs, mean_deltas, std_deltas, mean_action, std_action
 
 
@@ -140,7 +140,7 @@ def train(env,
     random_controller = RandomController(env)
 
     """ YOUR CODE HERE """
-    paths = sample(env, random_controller, num_paths_random, env_horizon)
+    data = sample(env, random_controller, num_paths_random, env_horizon)
 
     #========================================================
     # 
@@ -191,7 +191,23 @@ def train(env,
     # 
     for itr in range(onpol_iters):
         """ YOUR CODE HERE """
+        dyn_model.fit(data)
+        for n_path in range(num_paths_onpol):
+            ob = env.reset()
+            obs, n_obs, acs, rewards = [], [], []
+            for n_horz in range(env_horizon):
+                obs.append(ob)
+                ac = mpc_controller.get_action(ob)
+                acs.append(ac)
+                ob, rew, done, _ = env.step(ac)
+                n_obs.append(ob)
+                rewards.append(rew)
         
+            path = {"observations" : np.array(obs), 
+                    "next_observations" : np.array(n_obs),
+                    "rewards" : np.array(rewards), 
+                    "actions" : np.array(acs)}
+            data.append(path)
 
 
         # LOGGING
