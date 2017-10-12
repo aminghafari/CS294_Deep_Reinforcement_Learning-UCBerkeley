@@ -71,9 +71,10 @@ class NNDynamicsModel():
         
         n_delta = ((un_stp1-un_st)-self.mean_deltas)/(self.std_deltas+self.epsilon)
 
-        feed_dict = {self.st_at : n_stat, self.delta_ : n_delta}
-
+        rang = n_delta.shape[1]
         for i in range(self.iterations):
+            idx = np.random.randint(rang, size=self.batch_size)
+            feed_dict = {self.st_at : n_stat[idx,:], self.delta_ : n_delta[idx,:]}
             self.sess.run(self.update_op, feed_dict=feed_dict)
 
     def predict(self, states, actions):

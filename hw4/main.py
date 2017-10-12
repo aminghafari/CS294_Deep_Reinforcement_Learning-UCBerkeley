@@ -193,6 +193,7 @@ def train(env,
         """ YOUR CODE HERE """
         dyn_model.fit(data)
         for n_path in range(num_paths_onpol):
+            print(n_path,num_paths_onpol)
             ob = env.reset()
             obs, n_obs, acs, rewards = [], [], [], []
             for n_horz in range(env_horizon):
@@ -203,13 +204,16 @@ def train(env,
                 n_obs.append(ob)
                 rewards.append(rew)
         
+            cost = trajectory_cost_fn(cost_fn, np.array(obs), np.array(acs), np.array(n_obs))
             path = {"observations" : np.array(obs), 
                     "next_observations" : np.array(n_obs),
                     "rewards" : np.array(rewards), 
-                    "actions" : np.array(acs)}
+                    "actions" : np.array(acs),
+                    "costs" : cost}
             data.append(path)
 
-
+        returns = [path["rewards"].sum() for path in data]
+        costs = [path["costs"] for path in data]
         # LOGGING
         # Statistics for performance of MPC policy using
         # our learned dynamics model
