@@ -112,6 +112,7 @@ def main():
         values = args.value
     else:
         values = [args.value]
+    print(data)
     for value in values:
         plot_data(data, value=value)
 
