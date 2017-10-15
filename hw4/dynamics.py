@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import math
 
 # Predefined function to build a feedforward neural network
 def build_mlp(input_placeholder, 
@@ -71,11 +72,15 @@ class NNDynamicsModel():
         
         n_delta = ((un_stp1-un_st)-self.mean_deltas)/(self.std_deltas+self.epsilon)
 
-        rang = n_delta.shape[1]
+        N = n_delta.shape[0]
+        train_indicies = np.arange(N)
+        np.random.shuffle(train_indicies)
         for i in range(self.iterations):
-            idx = np.random.randint(rang, size=self.batch_size)
-            feed_dict = {self.st_at : n_stat[idx,:], self.delta_ : n_delta[idx,:]}
-            self.sess.run(self.update_op, feed_dict=feed_dict)
+            for i in range(int(math.ceil(N/self.batch_size))):
+                start_idx = i*self.batch_size%N
+                idx = train_indicies[start_idx:start_idx+self.batch_size]
+                feed_dict = {self.st_at : n_stat[idx,:], self.delta_ : n_delta[idx,:]}
+                self.sess.run(self.update_op, feed_dict=feed_dict)
 
     def predict(self, states, actions):
         """ Write a function to take in a batch of (unnormalized) states and (unnormalized) actions and return the (unnormalized) next states as predicted by using the model """
