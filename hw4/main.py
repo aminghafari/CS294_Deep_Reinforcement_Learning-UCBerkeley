@@ -199,7 +199,7 @@ def train(env,
             obs, n_obs, acs, rewards = [], [], [], []
             for n_horz in range(env_horizon):
                 obs.append(ob)
-                ac = mpc_controller.get_action(ob)
+                ac = random_controller.get_action(ob)
                 acs.append(ac)
                 ob, rew, done, _ = env.step(ac)
                 n_obs.append(ob)
