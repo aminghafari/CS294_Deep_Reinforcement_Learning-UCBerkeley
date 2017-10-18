@@ -51,18 +51,22 @@ class MPCcontroller(Controller):
             # loop for hirzon
             for n_hz in range(self.horizon):
                 ac = []
+                # genrate random actions
                 for n_path in range(self.num_simulated_paths):
                     ac.append(self.env.action_space.sample())
                     if(n_hz==0):
                         ac_first = np.array(ac)
+                # predict using dynamic model
                 stp1 = self.dyn_model.predict(st, np.array(ac))
-
+                
+                # find the cost
                 cost = cost + self.cost_fn(st, np.array(ac), stp1)
                 st = stp1
 
-             
+            # find the low cost path
             arg_min = np.argmin(cost)
             
+            # choose and return the action
             return ac_first[arg_min,:]
 
 

@@ -24,9 +24,11 @@ def sample(env,
     """
     paths = []
     """ YOUR CODE HERE """
+    # iterate over the paths
     for n_path in range(num_paths):
         ob = env.reset()
         obs, n_obs, acs, rewards = [], [], [],[]
+        # number of horizons to collect action and states for
         for n_horz in range(horizon):
             obs.append(ob)
             ac = controller.get_action(ob)
@@ -34,7 +36,9 @@ def sample(env,
             ob, rew, done, _ = env.step(ac)
             n_obs.append(ob)
             rewards.append(rew)
+        # collect the data and cost of the path
         cost = trajectory_cost_fn(cheetah_cost_fn, np.array(obs), np.array(acs), np.array(n_obs))
+        # add data
         path = {"observations" : np.array(obs), 
                 "next_observations" : np.array(n_obs),
                 "rewards" : np.array(rewards), 
@@ -55,10 +59,11 @@ def compute_normalization(data):
     """
 
     """ YOUR CODE HERE """
+    # concatetnate the data
     s_t     = np.concatenate([datum["observations"] for datum in data])
     s_tp1   = np.concatenate([datum["next_observations"] for datum in data])
     actions = np.concatenate([datum["actions"] for datum in data])
-
+    # compute the average and std
     mean_obs = np.mean(s_t,axis = 0)
     std_obs  =  np.std(s_t,axis = 0)
 
@@ -140,6 +145,7 @@ def train(env,
     random_controller = RandomController(env)
 
     """ YOUR CODE HERE """
+    # sample random paths
     data = sample(env, random_controller, num_paths_random, env_horizon)
 
     #========================================================
@@ -193,13 +199,13 @@ def train(env,
         """ YOUR CODE HERE """
         dyn_model.fit(data)
         paths = []
+        # iteration over paths
         for n_path in range(num_paths_onpol):
-            #print(n_path,num_paths_onpol)
             ob = env.reset()
             obs, n_obs, acs, rewards = [], [], [], []
             for n_horz in range(env_horizon):
                 obs.append(ob)
-                ac = random_controller.get_action(ob)
+                ac = mpc_controller.get_action(ob)
                 acs.append(ac)
                 ob, rew, done, _ = env.step(ac)
                 n_obs.append(ob)
