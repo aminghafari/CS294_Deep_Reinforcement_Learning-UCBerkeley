@@ -37,6 +37,7 @@ class TraditionalRLRewardPredictor(object):
         pass
 
 class ComparisonRewardPredictor():
+# important
     """Predictor that trains a model to predict how much reward is contained in a trajectory segment"""
 
     def __init__(self, env, summary_writer, comparison_collector, agent_logger, label_schedule):
@@ -299,7 +300,7 @@ def main():
 
     # We use a vanilla agent from openai/baselines that contains a single change that blinds it to the true reward
     # The single changed section is in `rl_teacher/agent/trpo/core.py`
-    print("Starting joint training of predictor and agent")
+    print("Starting joint training of predictor and agent!!!!")
     if args.agent == "parallel_trpo":
         train_parallel_trpo(
             env_id=env_id,
