@@ -77,7 +77,6 @@ class ComparisonRewardPredictor():
         # Temporarily chop up segments into individual observations and actions
         obs = tf.reshape(obs_segments, (-1,) + self.obs_shape)
         acts = tf.reshape(act_segments, (-1,) + self.act_shape)
-
         # Run them through our neural network
         rewards = network.run(obs, acts)
 
@@ -300,7 +299,7 @@ def main():
 
     # We use a vanilla agent from openai/baselines that contains a single change that blinds it to the true reward
     # The single changed section is in `rl_teacher/agent/trpo/core.py`
-    print("Starting joint training of predictor and agent!!!!")
+    print("Starting joint training of predictor and agent")
     if args.agent == "parallel_trpo":
         train_parallel_trpo(
             env_id=env_id,
