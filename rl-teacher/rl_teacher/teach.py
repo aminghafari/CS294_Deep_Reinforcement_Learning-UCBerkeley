@@ -40,11 +40,12 @@ class ComparisonRewardPredictor():
 # important
     """Predictor that trains a model to predict how much reward is contained in a trajectory segment"""
 
-    def __init__(self, env, summary_writer, comparison_collector, agent_logger, label_schedule):
+    def __init__(self, env, summary_writer, comparison_collector, agent_logger, label_schedule, num_r):
         self.summary_writer = summary_writer
         self.agent_logger = agent_logger
         self.comparison_collector = comparison_collector
         self.label_schedule = label_schedule
+        self.num_r = num_r
 
         # Set up some bookkeeping
         self.recent_segments = deque(maxlen=200)  # Keep a queue of recently seen segments to pull new comparisons from
@@ -104,40 +105,73 @@ class ComparisonRewardPredictor():
 
 
         # A vanilla multi-layer perceptron maps a (state, action) pair to a reward (Q-value)
-        mlp = FullyConnectedMLP(self.obs_shape, self.act_shape)
-
-        self.q_value = self._predict_rewards(self.segment_obs_placeholder, self.segment_act_placeholder, mlp)
-        alt_q_value = self._predict_rewards(self.segment_alt_obs_placeholder, self.segment_alt_act_placeholder, mlp)
-
-        # We use trajectory segments rather than individual (state, action) pairs because
-        # video clips of segments are easier for humans to evaluate
-        segment_reward_pred_left = tf.reduce_sum(self.q_value, axis=1)
-        segment_reward_pred_right = tf.reduce_sum(alt_q_value, axis=1)
-        reward_logits = tf.stack([segment_reward_pred_left, segment_reward_pred_right], axis=1)  # (batch_size, 2)
-
+        # make a list for reward networks
+        mlps = []
+        self.q_values = []
+        self.loss_ops = []
+        self.train_ops = []
         self.labels = tf.placeholder(dtype=tf.int32, shape=(None,), name="comparison_labels")
+        # loop over the num_r to cluster of NNs
+        for i in range(self.num_r):
+            # NN for each reward
+            mlp = FullyConnectedMLP(self.obs_shape, self.act_shape)
+            mlps.append(mlp)
+            # q_vlaue and alt_q_value for each reward network
+            q_value = self._predict_rewards(self.segment_obs_placeholder, self.segment_act_placeholder, mlp)
+            self.q_values.append(q_value)
 
-        # delta = 1e-5
-        # clipped_comparison_labels = tf.clip_by_value(self.comparison_labels, delta, 1.0-delta)
+            alt_q_value = self._predict_rewards(self.segment_alt_obs_placeholder, self.segment_alt_act_placeholder, mlp)
 
-        data_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=reward_logits, labels=self.labels)
+#       mlp = FullyConnectedMLP(self.obs_shape, self.act_shape)
 
-        self.loss_op = tf.reduce_mean(data_loss)
+#        self.q_value = self._predict_rewards(self.segment_obs_placeholder, self.segment_act_placeholder, mlp)
+#        alt_q_value = self._predict_rewards(self.segment_alt_obs_placeholder, self.segment_alt_act_placeholder, mlp)
 
-        global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.train_op = tf.train.AdamOptimizer().minimize(self.loss_op, global_step=global_step)
+            # We use trajectory segments rather than individual (state, action) pairs because
+            # video clips of segments are easier for humans to evaluate
+            segment_reward_pred_left = tf.reduce_sum(q_value, axis=1)
+            segment_reward_pred_right = tf.reduce_sum(alt_q_value, axis=1)
+            reward_logits = tf.stack([segment_reward_pred_left, segment_reward_pred_right], axis=1)  # (batch_size, 2)
+
+
+
+            # delta = 1e-5
+            # clipped_comparison_labels = tf.clip_by_value(self.comparison_labels, delta, 1.0-delta)
+
+            data_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=reward_logits, labels=self.labels)
+
+            loss_op = tf.reduce_mean(data_loss)
+            self.loss_ops.append(loss_op)
+
+            global_step = tf.Variable(0, name='global_step', trainable=False)
+            train_op = tf.train.AdamOptimizer().minimize(loss_op, global_step=global_step)
+            self.train_ops.append(train_op)
 
         return tf.get_default_graph()
 
     def predict_reward(self, path):
         """Predict the reward for each step in a given path"""
+        q_value_total = 0
         with self.graph.as_default():
-            q_value = self.sess.run(self.q_value, feed_dict={
-                self.segment_obs_placeholder: np.asarray([path["obs"]]),
-                self.segment_act_placeholder: np.asarray([path["actions"]]),
-                K.learning_phase(): False
-            })
-        return q_value[0]
+            for i in range(self.num_r):
+                q_value = self.sess.run(self.q_values[i], feed_dict={
+                    self.segment_obs_placeholder: np.asarray([path["obs"]]),
+                    self.segment_act_placeholder: np.asarray([path["actions"]]),
+                    K.learning_phase(): False
+                })
+                q_value_total += q_value[0]
+
+            return q_value_total/self.num_r
+
+#   def predict_reward(self, path):
+#        """Predict the reward for each step in a given path"""
+#        with self.graph.as_default():
+#            q_value = self.sess.run(self.q_value, feed_dict={
+#                self.segment_obs_placeholder: np.asarray([path["obs"]]),
+#                self.segment_act_placeholder: np.asarray([path["actions"]]),
+#                K.learning_phase(): False
+#            })
+#        return q_value[0]
 
     def path_callback(self, path):
         path_length = len(path["obs"])
@@ -173,14 +207,15 @@ class ComparisonRewardPredictor():
         labels = np.asarray([comp['label'] for comp in labeled_comparisons])
 
         with self.graph.as_default():
-            _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict={
-                self.segment_obs_placeholder: left_obs,
-                self.segment_act_placeholder: left_acts,
-                self.segment_alt_obs_placeholder: right_obs,
-                self.segment_alt_act_placeholder: right_acts,
-                self.labels: labels,
-                K.learning_phase(): True
-            })
+            for i in range(self.num_r):
+                _, loss = self.sess.run([self.train_ops[i], self.loss_ops[i]], feed_dict={
+                    self.segment_obs_placeholder: left_obs,
+                    self.segment_act_placeholder: left_acts,
+                    self.segment_alt_obs_placeholder: right_obs,
+                    self.segment_alt_act_placeholder: right_acts,
+                    self.labels: labels,
+                    K.learning_phase(): True
+                    })
             self._elapsed_predictor_training_iters += 1
             self._write_training_summaries(loss)
 
@@ -224,6 +259,7 @@ def main():
     parser.add_argument('-V', '--no_videos', action="store_true")
     args = parser.parse_args()
 
+    num_r = 1
     print("Setting things up...")
 
     env_id = args.env_id
@@ -268,6 +304,7 @@ def main():
             comparison_collector=comparison_collector,
             agent_logger=agent_logger,
             label_schedule=label_schedule,
+            num_r = num_r
         )
 
         print("Starting random rollouts to generate pretraining segments. No learning will take place...")
