@@ -163,6 +163,15 @@ class ComparisonRewardPredictor():
 
             return q_value_total/self.num_r
 
+    def predict_segment_individual_reward(self, segment, r_idx):
+        """Predict the reward for each step in a given path"""
+        with self.graph.as_default():
+            q_value = self.sess.run(self.q_values[r_idx], feed_dict={
+                self.segment_obs_placeholder: np.asarray([segment["obs"]]),
+                self.segment_act_placeholder: np.asarray([segment["actions"]]),
+                K.learning_phase(): False
+            })
+        return np.sum(q_value)
 #   def predict_reward(self, path):
 #        """Predict the reward for each step in a given path"""
 #        with self.graph.as_default():
@@ -186,9 +195,26 @@ class ComparisonRewardPredictor():
 
         # If we need more comparisons, then we build them from our recent segments
         if len(self.comparison_collector) < int(self.label_schedule.n_desired_labels):
+            n_cand_pairs = 20
+            cand_pairs_idx = np.random.randint(len(self.recent_segments), size=(n_cand_pairs, 2))
+            cand_pairs = []
+            segment_pairs = []
+            for i in range(n_cand_pairs):
+                segment_pair = {}
+                segment_pair['segment1'] = self.recent_segments[cand_pairs_idx[i,0]]
+                segment_pair['segment2'] = self.recent_segments[cand_pairs_idx[i,1]]
+                
+                which_seg = np.zeros((self.num_r))
+                for j in range(self.num_r):
+                    which_seg[j] = self.predict_segment_individual_reward(segment_pairs['segment1'], j)> self.predict_segment_individual_reward(segment_pairs['segment2'], j)
+                
+                segment_pair['std'] = np.std(which_seg)
+                segment_pairs.append(segment_pair)
+
+            max_std_idx = np.argmax(np.concatenate([pair_std['std'] for pair_std in segment_pairs]))
+            chosen_pair = segment_pairs[max_std_idx]
             self.comparison_collector.add_segment_pair(
-                random.choice(self.recent_segments),
-                random.choice(self.recent_segments))
+                chosen_pair['segment1'],chosen_pair['segment2'])
 
         # Train our predictor every X steps
         if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
@@ -197,25 +223,25 @@ class ComparisonRewardPredictor():
 
     def train_predictor(self):
         self.comparison_collector.label_unlabeled_comparisons()
+        
+        for i in range(self.num_r):
+            minibatch_size = min(64, len(self.comparison_collector.labeled_decisive_comparisons))
+            labeled_comparisons = random.sample(self.comparison_collector.labeled_decisive_comparisons, minibatch_size)
+            left_obs = np.asarray([comp['left']['obs'] for comp in labeled_comparisons])
+            left_acts = np.asarray([comp['left']['actions'] for comp in labeled_comparisons])
+            right_obs = np.asarray([comp['right']['obs'] for comp in labeled_comparisons])
+            right_acts = np.asarray([comp['right']['actions'] for comp in labeled_comparisons])
+            labels = np.asarray([comp['label'] for comp in labeled_comparisons])
 
-        minibatch_size = min(64, len(self.comparison_collector.labeled_decisive_comparisons))
-        labeled_comparisons = random.sample(self.comparison_collector.labeled_decisive_comparisons, minibatch_size)
-        left_obs = np.asarray([comp['left']['obs'] for comp in labeled_comparisons])
-        left_acts = np.asarray([comp['left']['actions'] for comp in labeled_comparisons])
-        right_obs = np.asarray([comp['right']['obs'] for comp in labeled_comparisons])
-        right_acts = np.asarray([comp['right']['actions'] for comp in labeled_comparisons])
-        labels = np.asarray([comp['label'] for comp in labeled_comparisons])
-
-        with self.graph.as_default():
-            for i in range(self.num_r):
-                _, loss = self.sess.run([self.train_ops[i], self.loss_ops[i]], feed_dict={
-                    self.segment_obs_placeholder: left_obs,
-                    self.segment_act_placeholder: left_acts,
-                    self.segment_alt_obs_placeholder: right_obs,
-                    self.segment_alt_act_placeholder: right_acts,
-                    self.labels: labels,
-                    K.learning_phase(): True
-                    })
+            with self.graph.as_default():
+                    _, loss = self.sess.run([self.train_ops[i], self.loss_ops[i]], feed_dict={
+                        self.segment_obs_placeholder: left_obs,
+                        self.segment_act_placeholder: left_acts,
+                        self.segment_alt_obs_placeholder: right_obs,
+                        self.segment_alt_act_placeholder: right_acts,
+                        self.labels: labels,
+                        K.learning_phase(): True
+                        })
             self._elapsed_predictor_training_iters += 1
             self._write_training_summaries(loss)
 
@@ -227,7 +253,7 @@ class ComparisonRewardPredictor():
         if len(recent_paths) > 1 and self.agent_logger.summary_step % 10 == 0:  # Run validation every 10 iters
             validation_obs = np.asarray([path["obs"] for path in recent_paths])
             validation_acts = np.asarray([path["actions"] for path in recent_paths])
-            q_value = self.sess.run(self.q_value, feed_dict={
+            q_value = self.sess.run(self.q_values[0], feed_dict={
                 self.segment_obs_placeholder: validation_obs,
                 self.segment_act_placeholder: validation_acts,
                 K.learning_phase(): False
@@ -259,7 +285,7 @@ def main():
     parser.add_argument('-V', '--no_videos', action="store_true")
     args = parser.parse_args()
 
-    num_r = 1
+    num_r = 4
     print("Setting things up...")
 
     env_id = args.env_id
