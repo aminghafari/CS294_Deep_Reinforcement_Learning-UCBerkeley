@@ -16,7 +16,8 @@ from rl_teacher.envs import make_with_torque_removed
 from rl_teacher.label_schedules import LabelAnnealer, ConstantLabelSchedule
 from rl_teacher.nn import FullyConnectedMLP
 from rl_teacher.segment_sampling import sample_segment_from_path
-from rl_teacher.segment_sampling import segments_from_rand_rollout
+from rl_teacher.segment_sampling import segments_from_rand_rollout 
+from rl_teacher.segment_sampling import basic_segments_from_rand_rollout_1
 from rl_teacher.summaries import AgentLogger, make_summary_writer
 from rl_teacher.utils import slugify, corrcoef
 from rl_teacher.video import SegmentVideoRecorder
@@ -40,12 +41,13 @@ class ComparisonRewardPredictor():
 # important
     """Predictor that trains a model to predict how much reward is contained in a trajectory segment"""
 
-    def __init__(self, env, summary_writer, comparison_collector, agent_logger, label_schedule, num_r):
+    def __init__(self, env, summary_writer, comparison_collector, agent_logger, label_schedule, num_r, env_id, ):
         self.summary_writer = summary_writer
         self.agent_logger = agent_logger
         self.comparison_collector = comparison_collector
         self.label_schedule = label_schedule
         self.num_r = num_r
+        self.env_id = env_id
 
         # Set up some bookkeeping
         self.recent_segments = deque(maxlen=200)  # Keep a queue of recently seen segments to pull new comparisons from
@@ -199,10 +201,13 @@ class ComparisonRewardPredictor():
             cand_pairs_idx = np.random.randint(len(self.recent_segments), size=(n_cand_pairs, 2))
             cand_pairs = []
             segment_pairs = []
+            random_segment = basic_segments_from_rand_rollout_1(
+    self.env_id, make_with_torque_removed, n_desired_segments = 1, clip_length_in_seconds=CLIP_LENGTH)[0]
             for i in range(n_cand_pairs):
                 segment_pair = {}
                 segment_pair['segment1'] = self.recent_segments[cand_pairs_idx[i,0]]
-                segment_pair['segment2'] = self.recent_segments[cand_pairs_idx[i,1]]
+                #segment_pair['segment2'] = self.recent_segments[cand_pairs_idx[i,1]]
+                segment_pair['segment2'] = random_segment
                 
                 which_seg = np.zeros((self.num_r))
                 for j in range(self.num_r):
@@ -285,7 +290,7 @@ def main():
     parser.add_argument('-V', '--no_videos', action="store_true")
     args = parser.parse_args()
 
-    num_r = 5
+    num_r = 1
     print("Setting things up...")
 
     env_id = args.env_id
@@ -330,7 +335,8 @@ def main():
             comparison_collector=comparison_collector,
             agent_logger=agent_logger,
             label_schedule=label_schedule,
-            num_r = num_r
+            num_r = num_r,
+            env_id = env_id
         )
 
         print("Starting random rollouts to generate pretraining segments. No learning will take place...")
