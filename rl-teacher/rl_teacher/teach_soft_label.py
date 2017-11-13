@@ -22,6 +22,9 @@ from rl_teacher.summaries import AgentLogger, make_summary_writer
 from rl_teacher.utils import slugify, corrcoef
 from rl_teacher.video import SegmentVideoRecorder
 
+# os.environ["CUDA_VISIBLE_DEVICES"]="0"
+# config=tf.ConfigProto(log_device_placement=True)
+
 CLIP_LENGTH = 1.5
 
 ####### Extra variables
@@ -225,7 +228,15 @@ class ComparisonRewardPredictor():
 #            chosen_pair = segment_pairs[max_std_idx]
 #            self.comparison_collector.add_segment_pair(
 #                chosen_pair['segment1'],chosen_pair['segment2'])
-#        if len(self.comparison_collector) < int(self.label_schedule.n_desired_labels):
+        print('+++++++++++++++++++++++++++++++++++++++++++++++++',len(self.comparison_collector),'++++++++++++++++++++++++++++++++++++++++++++')
+        if len(self.comparison_collector) > int(self.label_schedule.n_desired_labels):
+            num_removal = len(self.comparison_collector) - int(self.label_schedule.n_desired_labels)
+            self.comparison_collector.remove_segment_pair(num_removal)
+
+
+        
+        print('+++++++++++++++++++++++++++++++++++++++++++++++++',len(self.comparison_collector),'++++++++++++++++++++++++++++++++++++++++++++')
+        print('+++++++++++++++++++++++++++++++++++++++++++++++++',int(self.label_schedule.n_desired_labels),'++++++++++++++++++++++++++++++++++++++++++++')
         self.comparison_collector.add_segment_pair(random.choice(self.recent_segments), random.choice(self.recent_segments))
 
         # Train our predictor every X steps
@@ -245,6 +256,9 @@ class ComparisonRewardPredictor():
 
             selected_good_seg = random.choice(good_segs_pool)
             selected_bad_seg  = random.choice(bad_segs_pool)
+
+            #perturbation
+
             self.comparison_collector.add_augmented_segment_pair(selected_good_seg, selected_bad_seg)
 
         for i in range(self.num_r):

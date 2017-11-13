@@ -1,0 +1,27 @@
+Sat Nov 11 15:30:08 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:30:08 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:30:08 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:32:47 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:32:47 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:32:47 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:36:11 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:40:21 2017
+ERROR: Offscreen framebuffer is not complete
+
+Sat Nov 11 15:40:21 2017
+ERROR: Offscreen framebuffer is not complete
+
