@@ -51,8 +51,8 @@
 
             </div>
         </div>
-        <div style="text-align:center; height: 0">
-            <div style="position:relative;top:-78px;width: 200px;left: 50%;margin-left: -100px;">
+        <div  style="text-align:center;  ">
+            <div style="position:relative;top:-76px;width: 200px;left: 50%;margin-left: -100px">
 {#                <form style="padding-top:30px"#}
 {#                      action="/experiments/{{ experiment.name }}/ajax_response" method="post">#}
 {#                    {% csrf_token %}#}
@@ -65,10 +65,27 @@
                       action="/experiments/{{ experiment.name }}/ajax_response" method="post">
                     {% csrf_token %}
                     <input type="hidden" name="comparison_id" value="{{ comparison.id }}">
-                    <input type="hidden" name="response" value="{{ 'abstain' }}">
-                    <input class="btn btn-lg btn-default choice-abstain" type="submit" value="Can't tell">
+                    <input type="hidden" name="response" value="{{ 'good' }}">
+                    <input class="btn btn-lg btn-default choice-abstain" type="submit" value="Equally good">
+                </form>
+
+                <form style="padding-top:30px"
+                      action="/experiments/{{ experiment.name }}/ajax_response" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="comparison_id" value="{{ comparison.id }}">
+                    <input type="hidden" name="response" value="{{ 'bad' }}">
+                    <input class="btn btn-lg btn-default choice-abstain" type="submit" value="Equally bad">
                 </form>
             </div>
+{#            <div style="position:relative;top:-180px;width: 200px;left: 50%;margin-left: -100px;">#}
+{#                <form style="padding-top:30px"#}
+{#                      action="/experiments/{{ experiment.name }}/ajax_response" method="post">#}
+{#                    {% csrf_token %}#}
+{#                    <input type="hidden" name="comparison_id" value="{{ comparison.id }}">#}
+{#                    <input type="hidden" name="response" value="{{ 'abstain' }}">#}
+{#                    <input class="btn btn-lg btn-default choice-abstain" type="submit" value="Can't tell">#}
+{#                </form>#}
+{#            </div>#}
         </div>
         <hr>
         <div>

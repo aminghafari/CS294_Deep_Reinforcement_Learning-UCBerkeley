@@ -106,25 +106,25 @@ def segments_from_rand_rollout(env_id, make_env, n_desired_segments, clip_length
 
 
 # to generat one segment randomly 
-def basic_segments_from_rand_rollout_1(
-    env_id, make_env, n_desired_segments, clip_length_in_seconds,
-    # These are only for use with multiprocessing
-    seed=0, _verbose=True, _multiplier=1
-):
-    """ Generate a list of path segments by doing random rollouts. No multiprocessing. """
-    segments = []
-    env = make_env(env_id)
-    env.seed(seed)
-    space_prng.seed(seed)
-    segment_length = int(clip_length_in_seconds * env.fps)
+# def basic_segments_from_rand_rollout_1(
+#     env_id, make_env, n_desired_segments, clip_length_in_seconds,
+#     # These are only for use with multiprocessing
+#     seed=0, _verbose=True, _multiplier=1
+# ):
+#     """ Generate a list of path segments by doing random rollouts. No multiprocessing. """
+#     segments = []
+#     env = make_env(env_id)
+#     env.seed(seed)
+#     space_prng.seed(seed)
+#     segment_length = int(clip_length_in_seconds * env.fps)
 
-    while len(segments) < n_desired_segments:
-        path = do_rollout(env, random_action)
-        # Calculate the number of segments to sample from the path
-        # Such that the probability of sampling the same part twice is fairly low.
-        segment = sample_segment_from_path(path, segment_length)
-        if segment:
-            segments.append(segment)
-    if _verbose:
-        print("Successfully collected %s segments" % (len(segments) * _multiplier))
-    return segments
+#     while len(segments) < n_desired_segments:
+#         path = do_rollout(env, random_action)
+#         # Calculate the number of segments to sample from the path
+#         # Such that the probability of sampling the same part twice is fairly low.
+#         segment = sample_segment_from_path(path, segment_length)
+#         if segment:
+#             segments.append(segment)
+#     if _verbose:
+#         print("Successfully collected %s segments" % (len(segments) * _multiplier))
+#     return segments

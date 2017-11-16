@@ -28,6 +28,7 @@ def print_stats(stats):
 def train_parallel_trpo(
         env_id,
         predictor,
+        num_r,
         make_env=gym.make,
         summary_writer=None,
         workers=1,
@@ -57,7 +58,7 @@ def train_parallel_trpo(
         discount_factor=discount_factor,
         cg_damping=cg_damping)
 
-    rollouts = ParallelRollout(env_id, make_env, predictor, workers, max_timesteps_per_episode, seed)
+    rollouts = ParallelRollout(env_id, make_env, predictor, workers, max_timesteps_per_episode, seed, num_r)
 
     iteration = 0
     start_time = time()

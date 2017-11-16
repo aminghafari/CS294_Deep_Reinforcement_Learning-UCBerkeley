@@ -6,6 +6,8 @@ import numpy as np
 import tensorflow as tf
 from parallel_trpo.utils import filter_ob, make_network
 
+from rl_teacher.segment_sampling import sample_segment_from_path
+
 class Actor(multiprocess.Process):
     def __init__(self, task_q, result_q, env_id, make_env, seed, max_timesteps_per_episode):
         multiprocess.Process.__init__(self)
@@ -109,7 +111,7 @@ class Actor(multiprocess.Process):
                 return path
 
 class ParallelRollout(object):
-    def __init__(self, env_id, make_env, reward_predictor, num_workers, max_timesteps_per_episode, seed):
+    def __init__(self, env_id, make_env, reward_predictor, num_workers, max_timesteps_per_episode, seed, num_r):
         self.num_workers = num_workers
         self.predictor = reward_predictor
 
@@ -127,6 +129,9 @@ class ParallelRollout(object):
         # we will start by running 20,000 / 1000 = 20 episodes for the first iteration  TODO OLD
         self.average_timesteps_in_episode = 1000
 
+        # number of NN for reward function
+        self.num_r = num_r
+
     def rollout(self, timesteps):
         start_time = time()
         # keep 20,000 timesteps per update  TODO OLD
@@ -137,9 +142,24 @@ class ParallelRollout(object):
         self.tasks_q.join()
 
         paths = []
-        for _ in range(num_rollouts):
-            path = self.results_q.get()
+        paths_scores = np.zeros((num_rollouts))
+        score_threshold = 0.5
+        for i in range(num_rollouts):
+            bad_path = True
+            while bad_path:
+                # if not self.results_q.get:
+                #     print('its emptyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
+                path = self.results_q.get()
+                
+                # get a segment from the path
+                init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
 
+                paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+
+                # print(paths_scores[i])
+                if paths_scores[i]>= score_threshold:
+                    bad_path = False
+            # path = self.results_q.get()
             ################################
             #  START REWARD MODIFICATIONS  #
             ################################
@@ -150,7 +170,45 @@ class ParallelRollout(object):
             #   END REWARD MODIFICATIONS   #
             ################################
 
+
+            # get a segment from the path
+            # init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
+
+            # paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+
+
             paths.append(path)
+
+
+        # choose the best paths among the givens
+        num_good_paths = 4
+        idx_good_paths = paths_scores.argsort()[::-1][0:num_good_paths]
+
+        paths = [paths[i] for i in idx_good_paths]
+
+
+
+        
+        # path selection
+        # choose the paths that reward functions has the most agreement on them
+        # paths_std   = np.zeros((num_rollouts))
+        # ind_reward = np.zeros((self.num_r))
+        # num_good_paths = 4
+        # for i in range(num_rollouts):
+            
+        #     for j in range(self.num_r):
+        #         ind_reward[j] = self.predictor.predict_segment_individual_reward(paths[i], j)
+
+        #     paths_std[i] = np.std(ind_reward)
+
+        # idx_good_paths = paths_std.argsort()[0:num_good_paths]
+
+        # paths = [paths[i] for i in idx_good_paths]
+
+        # path selection by the quality of segment
+
+
+
 
         self.average_timesteps_in_episode = sum([len(path["rewards"]) for path in paths]) / len(paths)
 

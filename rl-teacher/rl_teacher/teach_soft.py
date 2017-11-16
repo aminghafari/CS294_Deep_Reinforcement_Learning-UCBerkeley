@@ -237,11 +237,11 @@ class ComparisonRewardPredictor():
     def train_predictor(self):
         #self.comparison_collector.label_unlabeled_comparisons()
         # fill out the pools 
-        self.comparison_collector.label_unlabeled_comparisons_soft()
+        self.comparison_collector.label_unlabeled_comparisons()
 
         for i in range(self.num_r):
-            minibatch_size = min(64, len(self.comparison_collector.labeled_soft_decisive_comparisons))
-            labeled_comparisons = random.sample(self.comparison_collector.labeled_soft_decisive_comparisons, minibatch_size)
+            minibatch_size = min(64, len(self.comparison_collector.labeled_decisive_comparisons))
+            labeled_comparisons = random.sample(self.comparison_collector.labeled_decisive_comparisons, minibatch_size)
             left_obs = np.asarray([comp['left']['obs'] for comp in labeled_comparisons])
             left_acts = np.asarray([comp['left']['actions'] for comp in labeled_comparisons])
             right_obs = np.asarray([comp['right']['obs'] for comp in labeled_comparisons])
@@ -282,7 +282,7 @@ class ComparisonRewardPredictor():
         self.agent_logger.log_simple("labels/desired_labels", self.label_schedule.n_desired_labels)
         self.agent_logger.log_simple("labels/total_comparisons", len(self.comparison_collector))
         self.agent_logger.log_simple(
-            "labels/labeled_comparisons", len(self.comparison_collector.labeled_soft_decisive_comparisons))
+            "labels/labeled_comparisons", len(self.comparison_collector.labeled_decisive_comparisons))
 
 def main():
     import argparse
@@ -359,7 +359,7 @@ def main():
         # Sleep until the human has labeled most of the pretraining comparisons
         while len(comparison_collector.labeled_comparisons) < int(pretrain_labels * 0.75):
 
-            comparison_collector.label_unlabeled_comparisons_soft()
+            comparison_collector.label_unlabeled_comparisons()
 
             if args.predictor == "synth":
                 print("%s synthetic labels generated... " % (len(comparison_collector.labeled_comparisons)))

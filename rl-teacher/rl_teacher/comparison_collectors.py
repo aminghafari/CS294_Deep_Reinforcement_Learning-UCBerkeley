@@ -126,16 +126,20 @@ class HumanComparisonCollector():
         return [comp for comp in self._comparisons if comp['label'] is None]
 
     def label_unlabeled_comparisons(self):
-       from human_feedback_api import Comparison
+        from human_feedback_api import Comparison
 
-       for comparison in self.unlabeled_comparisons:
-           db_comp = Comparison.objects.get(pk=comparison['id'])
-           if db_comp.response == 'left':
-               comparison['label'] = 0
-           elif db_comp.response == 'right':
-               comparison['label'] = 1
-           elif db_comp.response == 'tie' or db_comp.response == 'abstain':
-               comparison['label'] = 'equal'
+        for comparison in self.unlabeled_comparisons:
+            db_comp = Comparison.objects.get(pk=comparison['id'])
+            if db_comp.response == 'left':
+                comparison['label'] = 0
+            elif db_comp.response == 'right':
+                comparison['label'] = 1
+            elif db_comp.response == 'good':
+                comparison['label'] = 2
+            elif db_comp.response == 'bad':
+                comparison['label'] = 3
+            elif db_comp.response == 'tie' or db_comp.response == 'abstain':
+                comparison['label'] = 0.5
                # If we did not match, then there is no response yet, so we just wait
 
     # soft cross entropy
@@ -223,10 +227,9 @@ class HumanComparisonCollector():
         
     #     self._comparisons.append(comparison)
 
-    # @property
-    # def labeled_soft_decisive_comparisons(self):
-    #     return [comp for comp in self._comparisons if comp['label'] in [0, 1, 0.5]]
-    #     print (comp)
+    @property
+    def labeled_soft_decisive_comparisons(self):
+        return [comp for comp in self._comparisons if comp['label'] in [0, 1, 2, 3]]
 
 
     # To remove from the list of comparisons

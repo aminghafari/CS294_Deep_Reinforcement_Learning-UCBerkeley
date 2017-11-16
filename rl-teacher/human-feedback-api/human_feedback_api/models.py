@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-RESPONSE_KIND_TO_RESPONSES_OPTIONS = {'left_or_right': ['left', 'right', 'tie', 'abstain']}
+RESPONSE_KIND_TO_RESPONSES_OPTIONS = {'left_or_right': ['left', 'right', 'tie', 'abstain', 'good', 'bad']}
 
 def validate_inclusion_of_response_kind(value):
     kinds = RESPONSE_KIND_TO_RESPONSES_OPTIONS.keys()
