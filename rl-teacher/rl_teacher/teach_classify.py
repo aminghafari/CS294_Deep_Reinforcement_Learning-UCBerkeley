@@ -221,7 +221,7 @@ class ComparisonRewardPredictor():
 
     def path_callback(self, path):
         path_length = len(path["obs"])
-        self._steps_since_last_training += path_length
+        self._steps_since_last_training += path_length/2.0
 
         self.agent_logger.log_episode(path)
 
@@ -231,7 +231,7 @@ class ComparisonRewardPredictor():
         if segment:
             self.recent_segments.append(segment)
 
-
+        score_threshold = 0.8
         # If we need more comparisons, then we build them from our recent segments
         if len(self.comparison_collector) < int(self.label_schedule.n_desired_labels) and len(self.recent_segments)>10:
             # generate segments
@@ -245,6 +245,8 @@ class ComparisonRewardPredictor():
 
             good_segment = sampeled_segments[np.argmax(sampeled_segments_score)]
             bad_segment  = sampeled_segments[np.argmin(sampeled_segments_score)]
+
+
             # find the good segment
             # no_seg = True
             # while no_seg:
@@ -263,7 +265,12 @@ class ComparisonRewardPredictor():
             #         bad_segment = sample_seg
             #         no_seg = False
 
-            self.comparison_collector.add_segment_pair(good_segment, bad_segment)
+
+            if(np.max(sampeled_segments_score)>score_threshold):
+                self.comparison_collector.add_segment_pair_with_label(good_segment, bad_segment, 0)
+            else:
+                self.comparison_collector.add_segment_pair(good_segment, bad_segment)
+
             # 
         #     n_cand_pairs = 1
         #     cand_pairs_idx = np.random.randint(len(self.recent_segments), size=(n_cand_pairs, 2))
@@ -383,7 +390,7 @@ def main():
     parser.add_argument('-V', '--no_videos', action="store_true")
     args = parser.parse_args()
 
-    num_r = 1
+    num_r = 5
     print("Setting things up...")
 
     env_id = args.env_id

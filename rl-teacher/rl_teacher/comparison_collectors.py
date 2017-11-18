@@ -110,6 +110,25 @@ class HumanComparisonCollector():
 
         self._comparisons.append(comparison)
 
+
+
+        
+
+    def add_segment_pair_with_label(self, left_seg, right_seg, label):
+        """Add a new unlabeled comparison from a segment pair"""
+
+        comparison_id = self._create_comparison_in_webapp(left_seg, right_seg)
+        comparison = {
+            "left": left_seg,
+            "right": right_seg,
+            "id": comparison_id,
+            "label": label
+        }
+
+        self._comparisons.append(comparison)
+
+
+
     def __len__(self):
         return len(self._comparisons)
 

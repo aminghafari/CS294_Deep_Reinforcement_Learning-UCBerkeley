@@ -145,21 +145,19 @@ class ParallelRollout(object):
         paths_scores = np.zeros((num_rollouts))
         score_threshold = 0.5
         for i in range(num_rollouts):
-            bad_path = True
-            while bad_path:
-                # if not self.results_q.get:
-                #     print('its emptyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
-                path = self.results_q.get()
+            # bad_path = True
+            # while bad_path:
+            #     path = self.results_q.get()
                 
-                # get a segment from the path
-                init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
+            #     # get a segment from the path
+            #     init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
 
-                paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+            #     paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
 
-                # print(paths_scores[i])
-                if paths_scores[i]>= score_threshold:
-                    bad_path = False
-            # path = self.results_q.get()
+            #     print(self.results_q.qsize())
+            #     if paths_scores[i]>= score_threshold:
+            #         bad_path = False
+            path = self.results_q.get()
             ################################
             #  START REWARD MODIFICATIONS  #
             ################################
@@ -172,9 +170,9 @@ class ParallelRollout(object):
 
 
             # get a segment from the path
-            # init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
+            init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
 
-            # paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+            paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
 
 
             paths.append(path)
