@@ -63,6 +63,10 @@ class HumanComparisonCollector():
         from human_feedback_api import Comparison
 
         self._comparisons = []
+        self._comparisons_labeled = []
+        self._comparisons_labeled_soft = []
+        self._comparisons_unlabeled = []
+
         self.env_id = env_id
         self.experiment_name = experiment_name
         self._upload_workers = multiprocessing.Pool(4)
@@ -109,6 +113,7 @@ class HumanComparisonCollector():
         }
 
         self._comparisons.append(comparison)
+        self._comparisons_unlabeled.append(comparison)
 
 
 
@@ -126,6 +131,8 @@ class HumanComparisonCollector():
         }
 
         self._comparisons.append(comparison)
+        self._comparisons_labeled.append(comparison)
+        self._comparisons_labeled_soft.append(comparison)
 
 
 
@@ -148,15 +155,22 @@ class HumanComparisonCollector():
         from human_feedback_api import Comparison
 
         for comparison in self.unlabeled_comparisons:
+        # for comparison in self._comparisons_unlabeled:
             db_comp = Comparison.objects.get(pk=comparison['id'])
             if db_comp.response == 'left':
                 comparison['label'] = 0
+                self._comparisons_labeled.append(comparison)
+                self._comparisons_labeled_soft.append(comparison)
             elif db_comp.response == 'right':
                 comparison['label'] = 1
+                self._comparisons_labeled.append(comparison)
+                self._comparisons_labeled_soft.append(comparison)
             elif db_comp.response == 'good':
                 comparison['label'] = 2
+                self._comparisons_labeled_soft.append(comparison)
             elif db_comp.response == 'bad':
                 comparison['label'] = 3
+                self._comparisons_labeled_soft.append(comparison)
             elif db_comp.response == 'tie' or db_comp.response == 'abstain':
                 comparison['label'] = 0.5
                # If we did not match, then there is no response yet, so we just wait

@@ -303,8 +303,10 @@ class ComparisonRewardPredictor():
 
         # train segment classifier
         # labeled sgements
-        minibatch_size = min(64, len(self.comparison_collector.labeled_soft_decisive_comparisons))
-        labeled_comparisons = random.sample(self.comparison_collector.labeled_soft_decisive_comparisons, minibatch_size)
+        # minibatch_size = min(64, len(self.comparison_collector.labeled_soft_decisive_comparisons))
+        # labeled_comparisons = random.sample(self.comparison_collector.labeled_soft_decisive_comparisons, minibatch_size)
+        minibatch_size = min(64, len(self.comparison_collector._comparisons_labeled_soft))
+        labeled_comparisons = random.sample(self.comparison_collector._comparisons_labeled_soft, minibatch_size)
 
         segments_to_classify_left  = np.concatenate( [self.obs_act_combine(labeled_comparisons[i]['left']['obs'] ,labeled_comparisons[i]['left']['actions']) for i in range(len(labeled_comparisons))])
         segments_to_classify_right  = np.concatenate( [self.obs_act_combine(labeled_comparisons[i]['right']['obs'] ,labeled_comparisons[i]['right']['actions']) for i in range(len(labeled_comparisons))])
@@ -329,8 +331,10 @@ class ComparisonRewardPredictor():
         # train the reward function
         
         for i in range(self.num_r):
-            minibatch_size = min(64, len(self.comparison_collector.labeled_decisive_comparisons))
-            labeled_comparisons = random.sample(self.comparison_collector.labeled_decisive_comparisons, minibatch_size)
+            # minibatch_size = min(64, len(self.comparison_collector.labeled_decisive_comparisons))
+            # labeled_comparisons = random.sample(self.comparison_collector.labeled_decisive_comparisons, minibatch_size)
+            minibatch_size = min(64, len(self.comparison_collector._comparisons_labeled))
+            labeled_comparisons = random.sample(self.comparison_collector._comparisons_labeled, minibatch_size)
             left_obs = np.asarray([comp['left']['obs'] for comp in labeled_comparisons])
             left_acts = np.asarray([comp['left']['actions'] for comp in labeled_comparisons])
             right_obs = np.asarray([comp['right']['obs'] for comp in labeled_comparisons])
