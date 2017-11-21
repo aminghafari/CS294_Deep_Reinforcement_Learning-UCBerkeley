@@ -170,19 +170,19 @@ class ParallelRollout(object):
 
 
             # get a segment from the path
-            init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
+        #     init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
 
-            paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+        #     paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
 
 
             paths.append(path)
 
 
-        # choose the best paths among the givens
-        num_good_paths = 4
-        idx_good_paths = paths_scores.argsort()[::-1][0:num_good_paths]
+        # # choose the best paths among the givens
+        # num_good_paths = 4
+        # idx_good_paths = paths_scores.argsort()[::-1][0:num_good_paths]
 
-        paths = [paths[i] for i in idx_good_paths]
+        # paths = [paths[i] for i in idx_good_paths]
 
 
 

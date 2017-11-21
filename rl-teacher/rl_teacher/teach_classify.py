@@ -292,11 +292,33 @@ class ComparisonRewardPredictor():
         #     chosen_pair = segment_pairs[max_std_idx]
         #     self.comparison_collector.add_segment_pair(
         #         chosen_pair['segment1'],chosen_pair['segment2'])
+        # Train our predictor every X steps
+        if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
+            sleep(5)
+            self.train_predictor()
+            self._steps_since_last_training -= self._steps_since_last_training
 
-        # # Train our predictor every X steps
-        # if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
-        #     self.train_predictor()
-        #     self._steps_since_last_training -= self._steps_since_last_training
+    def path_callback_explore(self, path, other_paths):
+        path_length = len(path["obs"])
+        self._steps_since_last_training += path_length/2.0
+
+        self.agent_logger.log_episode(path)
+
+        
+        # We may be in a new part of the environment, so we take new segments to build comparisons from
+        segment = sample_segment_from_path(path, int(self._frames_per_segment))
+        if segment:
+            self.recent_segments.append(segment)
+
+        for i in range(len(other_paths)):
+            other_segment = sample_segment_from_path(path, int(self._frames_per_segment))
+            if other_segment and segment:
+                self.comparison_collector.add_segment_pair(segment, other_segment)
+        # Train our predictor every X steps
+        if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
+            sleep(2)
+            self.train_predictor()
+            self._steps_since_last_training -= self._steps_since_last_training
 
     def train_predictor(self):
         self.comparison_collector.label_unlabeled_comparisons()
