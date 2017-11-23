@@ -7,8 +7,11 @@ import tensorflow as tf
 import numpy as np
 import gym
 
+
+from numpy import random
 from parallel_trpo.model import TRPO
 from parallel_trpo.rollouts import ParallelRollout
+from parallel_trpo.rollouts import ParallelRollout_1
 
 def print_stats(stats):
     for k, v in stats.items():
@@ -39,6 +42,8 @@ def train_parallel_trpo(
         seed=0,
         discount_factor=0.995,
         cg_damping=0.1,
+        num_policy = 3,
+        exploration = True
 ):
     # Tensorflow is not fork-safe, so we must use spawn instead
     # https://github.com/tensorflow/tensorflow/issues/5448#issuecomment-258934405
@@ -52,29 +57,77 @@ def train_parallel_trpo(
     if max_timesteps_per_episode is None:
         max_timesteps_per_episode = gym.spec(env_id).timestep_limit
 
+
+    # explorations
+    learners_policy = []
+
+    if exploration:
+        for i in range(num_policy):
+            _learner = TRPO(
+            env_id, make_env,
+            max_kl=max_kl,
+            discount_factor=discount_factor,
+            cg_damping=cg_damping,
+            policy_name = 'policy'+str(i))
+
+            learners_policy.append(_learner)
+
+
     learner = TRPO(
         env_id, make_env,
         max_kl=max_kl,
         discount_factor=discount_factor,
-        cg_damping=cg_damping)
+        cg_damping=cg_damping,
+        policy_name = 'baseline')
 
-    rollouts = ParallelRollout(env_id, make_env, predictor, workers, max_timesteps_per_episode, seed, num_r)
+    if exploration:
+        rollouts = ParallelRollout_1(env_id, make_env, predictor, workers, max_timesteps_per_episode, seed, num_r, num_policy)
+
+    else: 
+        rollouts = ParallelRollout(env_id, make_env, predictor, workers, max_timesteps_per_episode, seed, num_r)
+
 
     iteration = 0
     start_time = time()
 
+    num_chosen_paths = 4
+
     while run_indefinitely or time() < start_time + runtime:
         iteration += 1
 
-        # update the weights
-        weights = learner.get_policy()
-        rollouts.set_policy_weights(weights)
 
-        # run a bunch of async processes that collect rollouts
-        paths, rollout_time = rollouts.rollout(timesteps_per_batch)
+        # exploration
+        if exploration:
+            weights_list = []
+            for i in range(num_policy):
+                weights_list.append(learners_policy[i].get_policy())
+        # update the weights for the baseline policy
+            weights = learner.get_policy()
+            weights_list.append(weights)
 
-        # learn from that data
-        stats, learn_time = learner.learn(paths)
+            rollouts.set_policy_weights(weights_list)
+
+            # run a bunch of async processes that collect rollouts
+            paths, rollout_time = rollouts.rollout(timesteps_per_batch)
+
+
+            # learn from that data
+            for i in range(num_policy):
+                stats, learn_time = learners_policy[i].learn(random.choice(paths, num_chosen_paths))
+
+            stats, learn_time = learner.learn(random.choice(paths, num_chosen_paths))
+
+        else:
+            weights = learner.get_policy()
+            rollouts.set_policy_weights(weights)
+
+
+            # run a bunch of async processes that collect rollouts
+            paths, rollout_time = rollouts.rollout(timesteps_per_batch)
+
+            # learn from that data
+            stats, learn_time = learner.learn(random.choice(paths, num_chosen_paths))
+
 
         # output stats
         print("-------- Iteration %d ----------" % iteration)

@@ -170,9 +170,9 @@ class ParallelRollout(object):
 
 
             # get a segment from the path
-        #     init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
+            # init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
 
-        #     paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+            # paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
 
 
             paths.append(path)
@@ -210,7 +210,7 @@ class ParallelRollout(object):
 
         self.average_timesteps_in_episode = sum([len(path["rewards"]) for path in paths]) / len(paths)
 
-        return paths, time() - start_time
+        return paths[0:4], time() - start_time
 
     def set_policy_weights(self, parameters):
         for i in range(self.num_workers):
@@ -220,3 +220,135 @@ class ParallelRollout(object):
     def end(self):
         for i in range(self.num_workers):
             self.tasks_q.put("kill")
+
+
+### rollout with explorations
+class ParallelRollout_1(object):
+    def __init__(self, env_id, make_env, reward_predictor, num_workers, max_timesteps_per_episode, seed, num_r, num_policy):
+        # to get paths from exploration policies
+        self.num_policy = num_policy
+        self.tasks_q_s = []
+        self.results_q_s = []
+
+        # time elpased
+        self._timesteps_elapsed = 0
+
+
+        self.num_workers = num_workers
+        self.predictor = reward_predictor
+        self.actors = []
+
+        # a for loop for exploration policy
+        for i in range(num_policy+1):
+            tasks_q = multiprocess.JoinableQueue()
+            results_q = multiprocess.Queue()
+
+            self.tasks_q_s.append(tasks_q)
+            self.results_q_s.append(results_q)
+        
+            for j in range(self.num_workers):
+                new_seed = seed * 1000 + i  # Give each actor a uniquely seeded env
+                self.actors.append(Actor(tasks_q, results_q, env_id, make_env, new_seed, max_timesteps_per_episode))
+
+        for a in self.actors:
+            a.start()
+
+        # we will start by running 20,000 / 1000 = 20 episodes for the first iteration  TODO OLD
+        self.average_timesteps_in_episode = 1000
+
+        # number of NN for reward function
+        self.num_r = num_r
+
+    def rollout(self, timesteps):
+        start_time = time()
+        # keep 20,000 timesteps per update  TODO OLD
+        num_rollouts = int(timesteps / self.average_timesteps_in_episode)
+
+        for i in range(self.num_policy+1):
+            for _ in range(num_rollouts):
+                self.tasks_q_s[i].put("do_rollout")
+            self.tasks_q_s[i].join()
+
+        paths = []
+        paths_scores = np.zeros((num_rollouts))
+        score_threshold = 0.5
+        time_step_to_start_exploration = 500
+
+        for i in range(num_rollouts):
+
+            if(self._timesteps_elapsed>time_step_to_start_exploration):
+                exploration_paths = []
+
+                for j in range(self.num_policy):
+                    explooration_path = self.results_q_s[j].get()
+                    exploration_paths.append(explooration_path)
+                    
+                    explooration_path["original_rewards"] = explooration_path["rewards"]
+                    explooration_path["rewards"] = self.predictor.predict_reward(explooration_path)
+
+                    paths.append(explooration_path)
+
+                path = self.results_q_s[-1].get()
+                ################################
+                #  START REWARD MODIFICATIONS  #
+                ################################
+                path["original_rewards"] = path["rewards"]
+                path["rewards"] = self.predictor.predict_reward(path)
+                self.predictor.path_callback_explore(path, exploration_paths)
+                ################################
+                #   END REWARD MODIFICATIONS   #
+                ################################
+
+
+            else:
+                path = self.results_q_s[-1].get()
+                ################################
+                #  START REWARD MODIFICATIONS  #
+                ################################
+                path["original_rewards"] = path["rewards"]
+                path["rewards"] = self.predictor.predict_reward(path)
+                self.predictor.path_callback(path)
+                ################################
+                #   END REWARD MODIFICATIONS   #
+                ################################
+
+
+            # get a segment from the path
+            init_seg = sample_segment_from_path(path, int(self.predictor._frames_per_segment))
+
+            paths_scores[i] = self.predictor.predict_segment_quality(init_seg)[1]
+
+
+            paths.append(path)
+
+
+        num_good_paths = 4
+        if(self._timesteps_elapsed<500): # to use critique 
+            # # choose the best paths among the givens
+            idx_good_paths = paths_scores.argsort()[::-1][0:num_good_paths]
+
+            paths = [paths[i] for i in idx_good_paths]
+
+
+        # to find the elapsed time
+        for path in paths:
+            self._timesteps_elapsed += len(path)
+
+
+
+        self.average_timesteps_in_episode = sum([len(path["rewards"]) for path in paths]) / len(paths)
+
+        return paths, time() - start_time
+
+    def set_policy_weights(self, parameters):
+        # parameters is a list of all the explorations weights from policy
+        # the last one is related to the main policy
+        for i in range(self.num_policy+1):
+            for j in range(self.num_workers):
+                self.tasks_q_s[i].put(parameters[i])
+            self.tasks_q_s[i].join()
+
+    def end(self):
+        for i in range(self.num_policy+1):
+            for j in range(self.num_workers):
+                self.tasks_q_s[i].put("kill")

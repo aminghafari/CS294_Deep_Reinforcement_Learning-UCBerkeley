@@ -10,7 +10,7 @@ from parallel_trpo.value_function import LinearVF
 
 
 class TRPO(object):
-    def __init__(self, env_id, make_env, max_kl, discount_factor, cg_damping):
+    def __init__(self, env_id, make_env, max_kl, discount_factor, cg_damping, policy_name):
         self.max_kl = max_kl
         self.discount_factor = discount_factor
         self.cg_damping = cg_damping
@@ -26,8 +26,13 @@ class TRPO(object):
         self.old_avg_action_dist = tf.placeholder(tf.float32, [None, action_size])
         self.old_logstd_action_dist = tf.placeholder(tf.float32, [None, action_size])
 
+
+        self.policy_name = policy_name
+        # self.policy_vars, self.avg_action_dist, self.logstd_action_dist = utils.make_network(
+        #     "policy", self.obs, hidden_size, action_size)
+
         self.policy_vars, self.avg_action_dist, self.logstd_action_dist = utils.make_network(
-            "policy", self.obs, hidden_size, action_size)
+            self.policy_name, self.obs, hidden_size, action_size)
 
         batch_size = tf.shape(self.obs)[0]
         # what are the probabilities of taking self.action, given new and old distributions
@@ -100,7 +105,7 @@ class TRPO(object):
 
     # TODO: This is poorly done
     def get_policy(self):
-        op = [var for var in self.policy_vars if 'policy' in var.name]
+        op = [var for var in self.policy_vars if self.policy_name in var.name]
         return self.session.run(op)
 
     def learn(self, paths):

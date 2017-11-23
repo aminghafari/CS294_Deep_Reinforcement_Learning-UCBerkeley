@@ -158,7 +158,7 @@ class ComparisonRewardPredictor():
 
         # Train our predictor every X steps
         if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
-            sleep(.5)
+            # sleep(5)
             self.train_predictor()
             self._steps_since_last_training -= self._steps_since_last_training
 
@@ -315,6 +315,8 @@ def main():
             timesteps_per_batch=8000,
             max_kl=0.001,
             seed=args.seed,
+            num_policy = 0,
+            exploration = False,
         )
     elif args.agent == "pposgd_mpi":
         def make_env():

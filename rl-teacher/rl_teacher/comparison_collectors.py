@@ -113,7 +113,7 @@ class HumanComparisonCollector():
         }
 
         self._comparisons.append(comparison)
-        self._comparisons_unlabeled.append(comparison)
+        # self._comparisons_unlabeled.append(comparison)
 
 
 

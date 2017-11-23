@@ -28,6 +28,9 @@ class SegmentVideoRecorder(object):
 
         self.predictor.path_callback(path)
 
+    def path_callback_explore(self, path, other_paths):
+        self.predictor.path_callback_explore(path, other_paths)
+
     def predict_reward(self, path):
         return self.predictor.predict_reward(path)
 

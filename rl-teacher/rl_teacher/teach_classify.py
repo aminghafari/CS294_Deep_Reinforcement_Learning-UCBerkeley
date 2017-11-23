@@ -294,7 +294,7 @@ class ComparisonRewardPredictor():
         #         chosen_pair['segment1'],chosen_pair['segment2'])
         # Train our predictor every X steps
         if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
-            sleep(5)
+            # sleep(5)
             self.train_predictor()
             self._steps_since_last_training -= self._steps_since_last_training
 
@@ -311,12 +311,12 @@ class ComparisonRewardPredictor():
             self.recent_segments.append(segment)
 
         for i in range(len(other_paths)):
-            other_segment = sample_segment_from_path(path, int(self._frames_per_segment))
+            other_segment = sample_segment_from_path(other_paths[i], int(self._frames_per_segment))
             if other_segment and segment:
                 self.comparison_collector.add_segment_pair(segment, other_segment)
         # Train our predictor every X steps
         if self._steps_since_last_training >= int(self._n_timesteps_per_predictor_training):
-            sleep(2)
+            # sleep(2)
             self.train_predictor()
             self._steps_since_last_training -= self._steps_since_last_training
 
@@ -330,7 +330,7 @@ class ComparisonRewardPredictor():
         minibatch_size = min(64, len(self.comparison_collector._comparisons_labeled_soft))
         labeled_comparisons = random.sample(self.comparison_collector._comparisons_labeled_soft, minibatch_size)
 
-        segments_to_classify_left  = np.concatenate( [self.obs_act_combine(labeled_comparisons[i]['left']['obs'] ,labeled_comparisons[i]['left']['actions']) for i in range(len(labeled_comparisons))])
+        segments_to_classify_left   = np.concatenate( [self.obs_act_combine(labeled_comparisons[i]['left']['obs'] ,  labeled_comparisons[i]['left']['actions']) for i in range(len(labeled_comparisons))])
         segments_to_classify_right  = np.concatenate( [self.obs_act_combine(labeled_comparisons[i]['right']['obs'] ,labeled_comparisons[i]['right']['actions']) for i in range(len(labeled_comparisons))])
 
         # segments_to_classify_left  = np.concatenate( [np.concatenate(( labeled_comparisons[i]['left']['obs'].reshape(1,-1) ,labeled_comparisons[i]['left']['actions'].reshape(1,-1)), axis =1) for i in range(len(labeled_comparisons))])
@@ -416,7 +416,7 @@ def main():
     parser.add_argument('-V', '--no_videos', action="store_true")
     args = parser.parse_args()
 
-    num_r = 5
+    num_r = 1
     print("Setting things up...")
 
     env_id = args.env_id
@@ -507,6 +507,8 @@ def main():
             timesteps_per_batch=8000,
             max_kl=0.001,
             seed=args.seed,
+            num_policy = 3,
+            exploration = True,
         )
     elif args.agent == "pposgd_mpi":
         def make_env():

@@ -49,7 +49,7 @@ class AgentLogger(object):
         return [_pad_with_end_state(path, max_len) for path in self.last_n_paths]
 
     def log_episode(self, path):
-        self._timesteps_elapsed += len(path["obs"])
+        self._timesteps_elapsed += len(path["obs"])/2. # 2. because we are using just the half of th paths to train
         self._timesteps_since_last_training += len(path["obs"])
         self.last_n_paths.append(path)
 
