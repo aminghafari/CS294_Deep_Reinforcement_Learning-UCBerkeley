@@ -231,7 +231,8 @@ class ComparisonRewardPredictor():
         if segment:
             self.recent_segments.append(segment)
 
-        score_threshold = 0.8
+        score_threshold_up = 0.8
+        score_threshold_low = 0.2
         # If we need more comparisons, then we build them from our recent segments
         if len(self.comparison_collector) < int(self.label_schedule.n_desired_labels) and len(self.recent_segments)>10:
             # generate segments
@@ -266,7 +267,7 @@ class ComparisonRewardPredictor():
             #         no_seg = False
 
 
-            if(np.max(sampeled_segments_score)>score_threshold):
+            if(np.max(sampeled_segments_score)>score_threshold_up and np.min(sampeled_segments_score)<score_threshold_low):
                 self.comparison_collector.add_segment_pair_with_label(good_segment, bad_segment, 0)
             else:
                 self.comparison_collector.add_segment_pair(good_segment, bad_segment)
@@ -416,7 +417,7 @@ def main():
     parser.add_argument('-V', '--no_videos', action="store_true")
     args = parser.parse_args()
 
-    num_r = 1
+    num_r = 5
     print("Setting things up...")
 
     env_id = args.env_id
@@ -507,8 +508,8 @@ def main():
             timesteps_per_batch=8000,
             max_kl=0.001,
             seed=args.seed,
-            num_policy = 3,
-            exploration = True,
+            num_policy = 0,
+            exploration = False,
         )
     elif args.agent == "pposgd_mpi":
         def make_env():

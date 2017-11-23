@@ -42,8 +42,8 @@ def train_parallel_trpo(
         seed=0,
         discount_factor=0.995,
         cg_damping=0.1,
-        num_policy = 3,
-        exploration = True
+        num_policy = 0,
+        exploration = False
 ):
     # Tensorflow is not fork-safe, so we must use spawn instead
     # https://github.com/tensorflow/tensorflow/issues/5448#issuecomment-258934405
